@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { requireStaff } from "@/lib/auth/staff";
 import { newId } from "@/lib/ids";
 
-// Dev/local storage: files land in public/uploads and are served as static
-// assets. Swap this for Supabase Storage / S3 by replacing the write below
-// with an upload call and returning that provider's public URL instead —
-// callers only care that this returns a usable image path.
+// Vercel's filesystem isn't writable/persistent, so menu photos go to Vercel
+// Blob instead of public/uploads. Requires a Blob store attached in the
+// Vercel dashboard (Storage tab), which injects BLOB_READ_WRITE_TOKEN.
 const ALLOWED = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
-const MAX_BYTES = 5 * 1024 * 1024;
+// Stays under Vercel's 4.5MB request body limit for server uploads.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: Request) {
   const staff = await requireStaff();
@@ -32,11 +31,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-  const filename = `${newId()}.${ext}`;
-  const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadsDir, filename), bytes);
+  const blob = await put(`menu-photos/${newId()}.${ext}`, file, {
+    access: "public",
+    contentType: file.type,
+  });
 
-  return NextResponse.json({ path: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json({ path: blob.url }, { status: 201 });
 }
