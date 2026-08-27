@@ -8,10 +8,16 @@ async function main() {
   const schema = fs.readFileSync(schemaPath, "utf-8");
 
   // Neon's HTTP driver runs one statement per call, so the file is split on
-  // `;` — safe here since the schema has no semicolons inside string/body
-  // literals. Every statement is a `CREATE ... IF NOT EXISTS`, so re-running
-  // this against an already-migrated database is a no-op.
-  const statements = schema
+  // `;`. Line comments are stripped first — a `;` inside a `--` comment (e.g.
+  // "may operate; admins can...") would otherwise split mid-comment and
+  // corrupt the next statement. Every statement is a `CREATE ... IF NOT
+  // EXISTS`, so re-running this against an already-migrated database is a
+  // no-op.
+  const withoutComments = schema
+    .split("\n")
+    .map((line) => line.replace(/--.*$/, ""))
+    .join("\n");
+  const statements = withoutComments
     .split(";")
     .map((s) => s.trim())
     .filter(Boolean);
