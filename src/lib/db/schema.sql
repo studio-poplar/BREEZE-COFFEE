@@ -1,6 +1,10 @@
--- GROOVE COFFEE schema
--- Written to be close to portable SQL (easy to port to Postgres later):
--- avoid SQLite-only tricks where possible.
+-- GROOVE COFFEE schema (PostgreSQL / Neon via Vercel Postgres)
+--
+-- IDs are generated application-side (crypto.randomUUID()), and every
+-- timestamp is written explicitly from JS as an ISO 8601 string rather than
+-- relying on a DB-side default — keeps every environment (this Postgres, the
+-- earlier SQLite version, any future engine) behaving identically instead of
+-- depending on that engine's own now()/datetime() dialect.
 
 CREATE TABLE IF NOT EXISTS stores (
   store_id      TEXT PRIMARY KEY,
@@ -8,8 +12,8 @@ CREATE TABLE IF NOT EXISTS stores (
   type          TEXT NOT NULL CHECK (type IN ('permanent', 'popup')),
   starts_at     TEXT,               -- ISO datetime, popup event start (null for permanent)
   ends_at       TEXT,               -- ISO datetime, popup event end (null for permanent)
-  active        INTEGER NOT NULL DEFAULT 1,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  active        BOOLEAN NOT NULL DEFAULT true,
+  created_at    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS staff (
@@ -18,7 +22,7 @@ CREATE TABLE IF NOT EXISTS staff (
   password_hash TEXT NOT NULL,
   display_name  TEXT NOT NULL,
   role          TEXT NOT NULL CHECK (role IN ('admin', 'register')),
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at    TEXT NOT NULL
 );
 
 -- which stores a 'register' role staff member may operate; admins can access all stores
@@ -35,17 +39,17 @@ CREATE TABLE IF NOT EXISTS menu_items (
   price         INTEGER NOT NULL,
   category      TEXT NOT NULL DEFAULT '',
   image_path    TEXT,
-  active        INTEGER NOT NULL DEFAULT 1,
+  active        BOOLEAN NOT NULL DEFAULT true,
   sort_order    INTEGER NOT NULL DEFAULT 0,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS option_groups (
   group_id      TEXT PRIMARY KEY,
   item_id       TEXT NOT NULL REFERENCES menu_items(item_id) ON DELETE CASCADE,
   label         TEXT NOT NULL,
-  required      INTEGER NOT NULL DEFAULT 0,
-  multi_select  INTEGER NOT NULL DEFAULT 0,
+  required      BOOLEAN NOT NULL DEFAULT false,
+  multi_select  BOOLEAN NOT NULL DEFAULT false,
   sort_order    INTEGER NOT NULL DEFAULT 0
 );
 
@@ -62,7 +66,7 @@ CREATE TABLE IF NOT EXISTS customers (
   line_user_id  TEXT NOT NULL UNIQUE,
   display_name  TEXT NOT NULL,
   picture_url   TEXT,
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -73,7 +77,7 @@ CREATE TABLE IF NOT EXISTS orders (
   status          TEXT NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid', 'served')),
   payment_method  TEXT CHECK (payment_method IN ('cash', 'card')),
   total_price     INTEGER NOT NULL,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at      TEXT NOT NULL,
   paid_at         TEXT,
   served_at       TEXT
 );
@@ -92,7 +96,7 @@ CREATE TABLE IF NOT EXISTS serve_records (
   order_item_id   TEXT PRIMARY KEY REFERENCES order_items(order_item_id) ON DELETE CASCADE,
   served_options  TEXT NOT NULL DEFAULT '[]', -- JSON, actual served content (may differ from ordered)
   served_by       TEXT REFERENCES staff(staff_id),
-  served_at       TEXT NOT NULL DEFAULT (datetime('now'))
+  served_at       TEXT NOT NULL
 );
 
 -- "いつもの" (usual order) is a customer x drink-recipe preference, not tied to
@@ -106,7 +110,7 @@ CREATE TABLE IF NOT EXISTS favorites (
   item_name         TEXT NOT NULL,
   label             TEXT NOT NULL,
   selected_options  TEXT NOT NULL DEFAULT '[]',
-  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at        TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_menu_items_store ON menu_items(store_id);

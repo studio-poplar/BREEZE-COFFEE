@@ -5,8 +5,8 @@ import { listActiveStores } from "@/lib/data/stores";
 // be prerendered once at build time and never pick up stores added later.
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const stores = listActiveStores();
+export default async function Home() {
+  const stores = await listActiveStores();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-8 px-6 py-12">

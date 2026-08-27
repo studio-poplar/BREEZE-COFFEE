@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import type { Customer } from "@/lib/types";
 
@@ -94,23 +94,16 @@ export function getBearerToken(req: Request): string | null {
   return token;
 }
 
-const upsertCustomerStmt = db.prepare(`
-  INSERT INTO customers (customer_id, line_user_id, display_name, picture_url)
-  VALUES (@customer_id, @line_user_id, @display_name, @picture_url)
-  ON CONFLICT(line_user_id) DO UPDATE SET
-    display_name = excluded.display_name,
-    picture_url = excluded.picture_url
-`);
-const findCustomerStmt = db.prepare(`SELECT * FROM customers WHERE line_user_id = ?`);
-
-export function ensureCustomer(identity: LineIdentity): Customer {
-  upsertCustomerStmt.run({
-    customer_id: newId(),
-    line_user_id: identity.lineUserId,
-    display_name: identity.displayName,
-    picture_url: identity.pictureUrl,
-  });
-  return findCustomerStmt.get(identity.lineUserId) as Customer;
+export async function ensureCustomer(identity: LineIdentity): Promise<Customer> {
+  const rows = (await sql`
+    INSERT INTO customers (customer_id, line_user_id, display_name, picture_url, created_at)
+    VALUES (${newId()}, ${identity.lineUserId}, ${identity.displayName}, ${identity.pictureUrl}, ${new Date().toISOString()})
+    ON CONFLICT (line_user_id) DO UPDATE SET
+      display_name = excluded.display_name,
+      picture_url = excluded.picture_url
+    RETURNING *
+  `) as Customer[];
+  return rows[0];
 }
 
 /** Verifies the bearer token on `req` and returns the matching customer row, or null. */

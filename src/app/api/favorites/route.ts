@@ -10,8 +10,8 @@ export async function GET(req: Request) {
 
   const storeId = new URL(req.url).searchParams.get("store_id");
   const favorites = storeId
-    ? listFavoritesForStore(customer.customer_id, storeId)
-    : listFavoritesForCustomer(customer.customer_id);
+    ? await listFavoritesForStore(customer.customer_id, storeId)
+    : await listFavoritesForCustomer(customer.customer_id);
   return NextResponse.json({ favorites });
 }
 
@@ -38,10 +38,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const item = getMenuItem(parsed.data.item_id);
+  const item = await getMenuItem(parsed.data.item_id);
   if (!item) return NextResponse.json({ error: "item_not_found" }, { status: 404 });
 
-  const favorite = addFavorite(customer.customer_id, {
+  const favorite = await addFavorite(customer.customer_id, {
     item_id: item.item_id,
     item_name: item.name,
     label: parsed.data.label,

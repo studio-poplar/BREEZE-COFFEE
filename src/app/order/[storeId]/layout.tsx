@@ -11,7 +11,7 @@ export default async function OrderLayout({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  const store = getStore(storeId);
+  const store = await getStore(storeId);
   if (!store || !store.active) notFound();
 
   return (

@@ -8,7 +8,7 @@ export default async function RegisterPage() {
   const session = await getStaffSession();
   if (!session) return <StaffLoginForm title="レジアプリ ログイン" />;
 
-  const allStores = listStores().filter((s) => s.active);
+  const allStores = (await listStores()).filter((s) => s.active);
   const stores =
     session.role === "admin" ? allStores : allStores.filter((s) => session.storeIds.includes(s.store_id));
 

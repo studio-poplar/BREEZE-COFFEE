@@ -21,10 +21,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ storeId: stri
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const store = updateStore(storeId, {
-    ...parsed.data,
-    active: parsed.data.active === undefined ? undefined : parsed.data.active ? 1 : 0,
-  });
+  const store = await updateStore(storeId, parsed.data);
   if (!store) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ store });
 }

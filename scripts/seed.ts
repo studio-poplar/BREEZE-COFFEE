@@ -1,18 +1,17 @@
 import "dotenv/config";
-import { db } from "../src/lib/db";
 import { createStore, listStores } from "../src/lib/data/stores";
 import { createMenuItem, listMenu } from "../src/lib/data/menu";
 import { createStaff, findStaffByUsername } from "../src/lib/data/staff";
 
 async function main() {
-  let store = listStores().find((s) => s.name === "GROOVE COFFEE 本店");
+  let store = (await listStores()).find((s) => s.name === "GROOVE COFFEE 本店");
   if (!store) {
-    store = createStore({ name: "GROOVE COFFEE 本店", type: "permanent" });
+    store = await createStore({ name: "GROOVE COFFEE 本店", type: "permanent" });
     console.log(`store created: ${store.name} (${store.store_id})`);
   }
 
-  if (listMenu(store.store_id, { includeInactive: true }).length === 0) {
-    createMenuItem(store.store_id, {
+  if ((await listMenu(store.store_id, { includeInactive: true })).length === 0) {
+    await createMenuItem(store.store_id, {
       name: "カフェラテ",
       price: 550,
       category: "コーヒー",
@@ -48,7 +47,7 @@ async function main() {
       ],
     });
 
-    createMenuItem(store.store_id, {
+    await createMenuItem(store.store_id, {
       name: "ドリップコーヒー",
       price: 450,
       category: "コーヒー",
@@ -74,7 +73,7 @@ async function main() {
       ],
     });
 
-    createMenuItem(store.store_id, {
+    await createMenuItem(store.store_id, {
       name: "抹茶ラテ",
       price: 580,
       category: "ラテ",
@@ -100,7 +99,7 @@ async function main() {
       ],
     });
 
-    createMenuItem(store.store_id, {
+    await createMenuItem(store.store_id, {
       name: "焼き菓子セット",
       price: 350,
       category: "フード",
@@ -110,7 +109,7 @@ async function main() {
     console.log(`menu seeded for ${store.name}`);
   }
 
-  if (!findStaffByUsername("admin")) {
+  if (!(await findStaffByUsername("admin"))) {
     await createStaff({
       username: "admin",
       password: "admin1234",
@@ -121,7 +120,7 @@ async function main() {
     console.log("staff created: admin / admin1234 (role: admin)");
   }
 
-  if (!findStaffByUsername("register")) {
+  if (!(await findStaffByUsername("register"))) {
     await createStaff({
       username: "register",
       password: "register1234",
@@ -135,9 +134,7 @@ async function main() {
   console.log("seed complete.");
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
-    process.exitCode = 1;
-  })
-  .finally(() => db.close());
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

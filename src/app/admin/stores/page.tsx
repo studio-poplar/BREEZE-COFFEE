@@ -19,7 +19,7 @@ export default async function AdminStoresPage() {
   return (
     <div className="min-h-screen">
       <StaffHeader title="管理画面" name={session.displayName} />
-      <StoreManager initialStores={listStores()} />
+      <StoreManager initialStores={await listStores()} />
     </div>
   );
 }

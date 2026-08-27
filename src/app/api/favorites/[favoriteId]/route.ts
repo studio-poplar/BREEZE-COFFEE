@@ -7,7 +7,7 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ favoriteId: 
   if (!customer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { favoriteId } = await ctx.params;
-  const removed = removeFavorite(customer.customer_id, favoriteId);
+  const removed = await removeFavorite(customer.customer_id, favoriteId);
   if (!removed) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

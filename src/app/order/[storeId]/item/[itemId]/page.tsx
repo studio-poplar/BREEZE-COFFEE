@@ -8,7 +8,7 @@ export default async function ItemPage({
   params: Promise<{ storeId: string; itemId: string }>;
 }) {
   const { storeId, itemId } = await params;
-  const item = getMenuItem(itemId);
+  const item = await getMenuItem(itemId);
   if (!item || item.store_id !== storeId || !item.active) notFound();
 
   return <ItemCustomizer storeId={storeId} item={item} />;

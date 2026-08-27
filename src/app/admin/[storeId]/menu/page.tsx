@@ -15,13 +15,13 @@ export default async function AdminStoreMenuPage({
   if (!session) return <StaffLoginForm title="管理画面 ログイン" />;
 
   const { storeId } = await params;
-  const store = getStore(storeId);
+  const store = await getStore(storeId);
   if (!store) notFound();
   if (session.role !== "admin" && !session.storeIds.includes(storeId)) {
     return <p className="mt-16 text-center text-sm text-zinc-400">この店舗を管理する権限がありません</p>;
   }
 
-  const items = listMenu(storeId, { includeInactive: true });
+  const items = await listMenu(storeId, { includeInactive: true });
 
   return (
     <div className="min-h-screen">

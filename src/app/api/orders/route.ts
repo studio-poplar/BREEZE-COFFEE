@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const order = createOrder(parsed.data.store_id, customer.customer_id, parsed.data.lines);
+    const order = await createOrder(parsed.data.store_id, customer.customer_id, parsed.data.lines);
     return NextResponse.json({ order }, { status: 201 });
   } catch (err) {
     if (err instanceof OrderCreateError) {
@@ -39,5 +39,5 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const customer = await authenticateCustomer(req);
   if (!customer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  return NextResponse.json({ orders: listOrdersForCustomer(customer.customer_id) });
+  return NextResponse.json({ orders: await listOrdersForCustomer(customer.customer_id) });
 }

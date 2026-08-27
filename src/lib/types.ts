@@ -6,7 +6,7 @@ export interface Store {
   type: StoreType;
   starts_at: string | null;
   ends_at: string | null;
-  active: 0 | 1;
+  active: boolean;
   created_at: string;
 }
 
@@ -22,8 +22,8 @@ export interface OptionGroup {
   group_id: string;
   item_id: string;
   label: string;
-  required: 0 | 1;
-  multi_select: 0 | 1;
+  required: boolean;
+  multi_select: boolean;
   sort_order: number;
   choices: OptionChoice[];
 }
@@ -35,7 +35,7 @@ export interface MenuItem {
   price: number;
   category: string;
   image_path: string | null;
-  active: 0 | 1;
+  active: boolean;
   sort_order: number;
   created_at: string;
   option_groups: OptionGroup[];

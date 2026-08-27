@@ -29,7 +29,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ itemId: string 
   if (!staff) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { itemId } = await ctx.params;
-  const existing = getMenuItem(itemId);
+  const existing = await getMenuItem(itemId);
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!canAccessStore(staff, existing.store_id)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -40,7 +40,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ itemId: string 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const item = updateMenuItem(itemId, parsed.data);
+  const item = await updateMenuItem(itemId, parsed.data);
   return NextResponse.json({ item });
 }
 
@@ -49,14 +49,14 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ itemId: str
   if (!staff) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { itemId } = await ctx.params;
-  const existing = getMenuItem(itemId);
+  const existing = await getMenuItem(itemId);
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!canAccessStore(staff, existing.store_id)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   try {
-    deleteMenuItem(itemId);
+    await deleteMenuItem(itemId);
   } catch {
     return NextResponse.json(
       { error: "has_orders", message: "注文履歴があるため削除できません。非公開にしてください。" },

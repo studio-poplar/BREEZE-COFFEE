@@ -6,5 +6,5 @@ export async function GET(req: Request) {
   if (!storeId) {
     return NextResponse.json({ error: "store_id is required" }, { status: 400 });
   }
-  return NextResponse.json({ items: listMenu(storeId) });
+  return NextResponse.json({ items: await listMenu(storeId) });
 }

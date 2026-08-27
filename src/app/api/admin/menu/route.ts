@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json({ items: listMenu(storeId, { includeInactive: true }) });
+  return NextResponse.json({ items: await listMenu(storeId, { includeInactive: true }) });
 }
 
 const optionSchema = z.object({
@@ -51,6 +51,6 @@ export async function POST(req: Request) {
   }
 
   const { store_id, ...input } = parsed.data;
-  const item = createMenuItem(store_id, input);
+  const item = await createMenuItem(store_id, input);
   return NextResponse.json({ item }, { status: 201 });
 }

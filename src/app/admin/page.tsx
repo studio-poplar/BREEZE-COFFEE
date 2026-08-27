@@ -16,7 +16,7 @@ export default async function AdminPage() {
     );
   }
 
-  const stores = listStores();
+  const stores = await listStores();
 
   return (
     <div className="min-h-screen">

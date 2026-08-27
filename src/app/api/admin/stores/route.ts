@@ -7,7 +7,7 @@ export async function GET() {
   const staff = await requireStaff();
   if (!staff) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
-  const stores = listStores();
+  const stores = await listStores();
   const visible = staff.role === "admin" ? stores : stores.filter((s) => staff.storeIds.includes(s.store_id));
   return NextResponse.json({ stores: visible });
 }
@@ -28,6 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const store = createStore(parsed.data);
+  const store = await createStore(parsed.data);
   return NextResponse.json({ store }, { status: 201 });
 }

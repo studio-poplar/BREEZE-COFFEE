@@ -1,4 +1,5 @@
-import { db } from "@/lib/db";
+import { NeonDbError } from "@neondatabase/serverless";
+import { sql } from "@/lib/db";
 import { newId, newOrderToken } from "@/lib/ids";
 import { getMenuItems } from "@/lib/data/menu";
 import type { Order, OrderItem, SelectedOption, OrderStatus, PaymentMethod } from "@/lib/types";
@@ -27,10 +28,10 @@ function rowToOrder(row: Record<string, unknown>): Omit<Order, "items"> {
   };
 }
 
-function loadItems(orderId: string): OrderItem[] {
-  const rows = db
-    .prepare(`SELECT * FROM order_items WHERE order_id = ?`)
-    .all(orderId) as Record<string, unknown>[];
+async function loadItems(orderId: string): Promise<OrderItem[]> {
+  const rows = (await sql`
+    SELECT * FROM order_items WHERE order_id = ${orderId}
+  `) as Record<string, unknown>[];
   return rows.map((r) => ({
     order_item_id: r.order_item_id as string,
     order_id: r.order_id as string,
@@ -42,37 +43,43 @@ function loadItems(orderId: string): OrderItem[] {
   }));
 }
 
-export function getOrderByToken(token: string): Order | undefined {
-  const row = db.prepare(`SELECT * FROM orders WHERE order_token = ?`).get(token) as
-    | Record<string, unknown>
-    | undefined;
-  if (!row) return undefined;
-  const order = rowToOrder(row);
-  return { ...order, items: loadItems(order.order_id) };
+export async function getOrderByToken(token: string): Promise<Order | undefined> {
+  const rows = (await sql`SELECT * FROM orders WHERE order_token = ${token}`) as Record<
+    string,
+    unknown
+  >[];
+  if (!rows[0]) return undefined;
+  const order = rowToOrder(rows[0]);
+  return { ...order, items: await loadItems(order.order_id) };
 }
 
-export function listOrdersForCustomer(customerId: string): Order[] {
-  const rows = db
-    .prepare(`SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC`)
-    .all(customerId) as Record<string, unknown>[];
-  return rows.map((row) => {
-    const order = rowToOrder(row);
-    return { ...order, items: loadItems(order.order_id) };
-  });
+export async function listOrdersForCustomer(customerId: string): Promise<Order[]> {
+  const rows = (await sql`
+    SELECT * FROM orders WHERE customer_id = ${customerId} ORDER BY created_at DESC
+  `) as Record<string, unknown>[];
+  return Promise.all(
+    rows.map(async (row) => {
+      const order = rowToOrder(row);
+      return { ...order, items: await loadItems(order.order_id) };
+    })
+  );
 }
 
-export function createOrder(
+const MAX_TOKEN_ATTEMPTS = 5;
+
+export async function createOrder(
   storeId: string,
   customerId: string,
   lines: CreateOrderLine[]
-): Order {
+): Promise<Order> {
   if (lines.length === 0) throw new OrderCreateError("カートが空です");
 
   const itemIds = [...new Set(lines.map((l) => l.item_id))];
-  const menuById = getMenuItems(itemIds);
+  const menuById = await getMenuItems(itemIds);
 
   let total = 0;
   const preparedItems: {
+    order_item_id: string;
     item_id: string;
     item_name_snapshot: string;
     unit_price: number;
@@ -110,6 +117,7 @@ export function createOrder(
     const unitPrice = menuItem.price + selected.reduce((sum, o) => sum + o.extra_price, 0);
     total += unitPrice * line.qty;
     preparedItems.push({
+      order_item_id: newId(),
       item_id: menuItem.item_id,
       item_name_snapshot: menuItem.name,
       unit_price: unitPrice,
@@ -119,45 +127,49 @@ export function createOrder(
   }
 
   const order_id = newId();
-  let order_token = newOrderToken();
+  const createdAt = new Date().toISOString();
 
-  const insertOrder = db.prepare(
-    `INSERT INTO orders (order_id, order_token, store_id, customer_id, status, total_price)
-     VALUES (?, ?, ?, ?, 'unpaid', ?)`
-  );
-  const insertItem = db.prepare(
-    `INSERT INTO order_items (order_item_id, order_id, item_id, item_name_snapshot, unit_price, qty, selected_options)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  );
-  const tokenExists = db.prepare(`SELECT 1 FROM orders WHERE order_token = ?`);
-
-  const tx = db.transaction(() => {
-    while (tokenExists.get(order_token)) order_token = newOrderToken();
-    insertOrder.run(order_id, order_token, storeId, customerId, total);
-    for (const item of preparedItems) {
-      insertItem.run(
-        newId(),
-        order_id,
-        item.item_id,
-        item.item_name_snapshot,
-        item.unit_price,
-        item.qty,
-        JSON.stringify(item.selected_options)
-      );
+  // order_token is generated client-side and only ~1e12 possible values, so a
+  // collision is astronomically unlikely — but since the HTTP driver can't do
+  // an interactive "check, then insert" within one transaction, we instead
+  // let the UNIQUE constraint catch it and retry with a fresh token.
+  for (let attempt = 0; attempt < MAX_TOKEN_ATTEMPTS; attempt++) {
+    const order_token = newOrderToken();
+    try {
+      await sql.transaction((tx) => [
+        tx`
+          INSERT INTO orders (order_id, order_token, store_id, customer_id, status, total_price, created_at)
+          VALUES (${order_id}, ${order_token}, ${storeId}, ${customerId}, 'unpaid', ${total}, ${createdAt})
+        `,
+        ...preparedItems.map(
+          (item) => tx`
+            INSERT INTO order_items (order_item_id, order_id, item_id, item_name_snapshot, unit_price, qty, selected_options)
+            VALUES (${item.order_item_id}, ${order_id}, ${item.item_id}, ${item.item_name_snapshot},
+              ${item.unit_price}, ${item.qty}, ${JSON.stringify(item.selected_options)})
+          `
+        ),
+      ]);
+      return (await getOrderByToken(order_token))!;
+    } catch (err) {
+      const isTokenCollision = err instanceof NeonDbError && err.code === "23505";
+      if (isTokenCollision && attempt < MAX_TOKEN_ATTEMPTS - 1) continue;
+      throw err;
     }
-  });
-  tx();
-
-  return getOrderByToken(order_token)!;
+  }
+  throw new OrderCreateError("注文番号の生成に失敗しました。もう一度お試しください");
 }
 
-export function markOrderPaid(token: string, paymentMethod: PaymentMethod): Order | undefined {
-  const order = getOrderByToken(token);
+export async function markOrderPaid(
+  token: string,
+  paymentMethod: PaymentMethod
+): Promise<Order | undefined> {
+  const order = await getOrderByToken(token);
   if (!order) return undefined;
   if (order.status !== "unpaid") return order;
-  db.prepare(
-    `UPDATE orders SET status = 'paid', payment_method = ?, paid_at = datetime('now') WHERE order_token = ?`
-  ).run(paymentMethod, token);
+  await sql`
+    UPDATE orders SET status = 'paid', payment_method = ${paymentMethod}, paid_at = ${new Date().toISOString()}
+    WHERE order_token = ${token}
+  `;
   return getOrderByToken(token);
 }
 
@@ -167,41 +179,45 @@ export interface ServeInput {
   served_by: string;
 }
 
-export function markOrderServed(token: string, serves: ServeInput[]): Order | undefined {
-  const order = getOrderByToken(token);
+export async function markOrderServed(
+  token: string,
+  serves: ServeInput[]
+): Promise<Order | undefined> {
+  const order = await getOrderByToken(token);
   if (!order) return undefined;
 
-  const insertServe = db.prepare(
-    `INSERT OR REPLACE INTO serve_records (order_item_id, served_options, served_by)
-     VALUES (?, ?, ?)`
-  );
-  const tx = db.transaction(() => {
-    for (const s of serves) {
-      insertServe.run(s.order_item_id, JSON.stringify(s.served_options), s.served_by);
-    }
-    db.prepare(
-      `UPDATE orders SET status = 'served', served_at = datetime('now') WHERE order_token = ?`
-    ).run(token);
-  });
-  tx();
+  const servedAt = new Date().toISOString();
+  await sql.transaction((tx) => [
+    ...serves.map(
+      (s) => tx`
+        INSERT INTO serve_records (order_item_id, served_options, served_by, served_at)
+        VALUES (${s.order_item_id}, ${JSON.stringify(s.served_options)}, ${s.served_by}, ${servedAt})
+        ON CONFLICT (order_item_id) DO UPDATE SET
+          served_options = excluded.served_options,
+          served_by = excluded.served_by,
+          served_at = excluded.served_at
+      `
+    ),
+    tx`UPDATE orders SET status = 'served', served_at = ${servedAt} WHERE order_token = ${token}`,
+  ]);
 
   return getOrderByToken(token);
 }
 
-export function listOrdersForStore(storeId: string, status?: OrderStatus): Order[] {
+export async function listOrdersForStore(storeId: string, status?: OrderStatus): Promise<Order[]> {
   const rows = (
     status
-      ? db
-          .prepare(
-            `SELECT * FROM orders WHERE store_id = ? AND status = ? ORDER BY created_at DESC`
-          )
-          .all(storeId, status)
-      : db
-          .prepare(`SELECT * FROM orders WHERE store_id = ? ORDER BY created_at DESC`)
-          .all(storeId)
+      ? await sql`
+          SELECT * FROM orders WHERE store_id = ${storeId} AND status = ${status} ORDER BY created_at DESC
+        `
+      : await sql`
+          SELECT * FROM orders WHERE store_id = ${storeId} ORDER BY created_at DESC
+        `
   ) as Record<string, unknown>[];
-  return rows.map((row) => {
-    const order = rowToOrder(row);
-    return { ...order, items: loadItems(order.order_id) };
-  });
+  return Promise.all(
+    rows.map(async (row) => {
+      const order = rowToOrder(row);
+      return { ...order, items: await loadItems(order.order_id) };
+    })
+  );
 }

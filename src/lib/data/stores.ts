@@ -1,43 +1,47 @@
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import type { Store } from "@/lib/types";
 
-export function listStores(): Store[] {
-  return db.prepare(`SELECT * FROM stores ORDER BY created_at DESC`).all() as Store[];
+export async function listStores(): Promise<Store[]> {
+  return (await sql`SELECT * FROM stores ORDER BY created_at DESC`) as Store[];
 }
 
-export function listActiveStores(): Store[] {
-  return db
-    .prepare(`SELECT * FROM stores WHERE active = 1 ORDER BY created_at DESC`)
-    .all() as Store[];
+export async function listActiveStores(): Promise<Store[]> {
+  return (await sql`
+    SELECT * FROM stores WHERE active = true ORDER BY created_at DESC
+  `) as Store[];
 }
 
-export function getStore(storeId: string): Store | undefined {
-  return db.prepare(`SELECT * FROM stores WHERE store_id = ?`).get(storeId) as Store | undefined;
+export async function getStore(storeId: string): Promise<Store | undefined> {
+  const rows = (await sql`SELECT * FROM stores WHERE store_id = ${storeId}`) as Store[];
+  return rows[0];
 }
 
-export function createStore(input: {
+export async function createStore(input: {
   name: string;
   type: Store["type"];
   starts_at?: string | null;
   ends_at?: string | null;
-}): Store {
+}): Promise<Store> {
   const store_id = newId();
-  db.prepare(
-    `INSERT INTO stores (store_id, name, type, starts_at, ends_at) VALUES (?, ?, ?, ?, ?)`
-  ).run(store_id, input.name, input.type, input.starts_at ?? null, input.ends_at ?? null);
-  return getStore(store_id)!;
+  await sql`
+    INSERT INTO stores (store_id, name, type, starts_at, ends_at, created_at)
+    VALUES (${store_id}, ${input.name}, ${input.type}, ${input.starts_at ?? null}, ${input.ends_at ?? null}, ${new Date().toISOString()})
+  `;
+  return (await getStore(store_id))!;
 }
 
-export function updateStore(
+export async function updateStore(
   storeId: string,
   input: Partial<Pick<Store, "name" | "type" | "starts_at" | "ends_at" | "active">>
-): Store | undefined {
-  const current = getStore(storeId);
+): Promise<Store | undefined> {
+  const current = await getStore(storeId);
   if (!current) return undefined;
   const next = { ...current, ...input };
-  db.prepare(
-    `UPDATE stores SET name = ?, type = ?, starts_at = ?, ends_at = ?, active = ? WHERE store_id = ?`
-  ).run(next.name, next.type, next.starts_at, next.ends_at, next.active, storeId);
+  await sql`
+    UPDATE stores SET name = ${next.name}, type = ${next.type}, starts_at = ${next.starts_at},
+      ends_at = ${next.ends_at}, active = ${next.active}
+    WHERE store_id = ${storeId}
+  `;
   return getStore(storeId);
 }

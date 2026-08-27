@@ -5,7 +5,7 @@ import { getOrderByToken, markOrderPaid, markOrderServed } from "@/lib/data/orde
 
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
-  const order = getOrderByToken(token);
+  const order = await getOrderByToken(token);
   if (!order) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ order });
 }
@@ -40,7 +40,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ token: string
   if (!staff) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
 
   const { token } = await ctx.params;
-  const existing = getOrderByToken(token);
+  const existing = await getOrderByToken(token);
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (staff.role !== "admin" && !staff.storeIds.includes(existing.store_id)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -55,14 +55,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ token: string
     if (existing.status !== "unpaid") {
       return NextResponse.json({ error: "already_paid" }, { status: 409 });
     }
-    const order = markOrderPaid(token, parsed.data.payment_method);
+    const order = await markOrderPaid(token, parsed.data.payment_method);
     return NextResponse.json({ order });
   }
 
   if (existing.status !== "paid") {
     return NextResponse.json({ error: "not_paid_yet" }, { status: 409 });
   }
-  const order = markOrderServed(
+  const order = await markOrderServed(
     token,
     parsed.data.serves.map((s) => ({ ...s, served_by: staff.staffId }))
   );

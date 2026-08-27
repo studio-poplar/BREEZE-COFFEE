@@ -15,5 +15,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json({ orders: listOrdersForStore(storeId, status ?? undefined) });
+  return NextResponse.json({ orders: await listOrdersForStore(storeId, status ?? undefined) });
 }

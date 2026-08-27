@@ -4,7 +4,7 @@ import { listMenu } from "@/lib/data/menu";
 
 export default async function MenuPage({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = await params;
-  const items = listMenu(storeId);
+  const items = await listMenu(storeId);
 
   const categories = new Map<string, typeof items>();
   for (const item of items) {
