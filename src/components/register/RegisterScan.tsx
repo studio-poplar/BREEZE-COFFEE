@@ -1,47 +1,70 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QrScanner } from "@/components/register/QrScanner";
-import type { Order, Store } from "@/lib/types";
+import type { Order, PaymentMethod, Store } from "@/lib/types";
 
 const FLASH_MESSAGE: Record<string, string> = {
   paid: "会計を記録しました。次の注文をどうぞ。",
   served: "提供済みにしました。",
 };
 
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: "現金",
+  card: "カード",
+  emoney: "電子マネー",
+  qr: "QR決済",
+};
+
+const POLL_INTERVAL_MS = 5000;
+
+type Tab = "unpaid" | "paid" | "served";
+
+function formatTime(iso: string | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+}
+
 function OrderList({
-  title,
   orders,
   emptyText,
   onSelect,
+  showMeta,
 }: {
-  title: string;
   orders: Order[] | null;
   emptyText: string;
   onSelect: (token: string) => void;
+  /** Served tab shows when + how it was paid, to help spot mistakes. */
+  showMeta?: boolean;
 }) {
+  if (orders === null) return <p className="text-sm text-zinc-400">読み込み中...</p>;
+  if (orders.length === 0) return <p className="text-sm text-zinc-400">{emptyText}</p>;
+
   return (
-    <section>
-      <h2 className="mb-2 text-sm font-semibold text-zinc-500">{title}</h2>
-      {orders === null && <p className="text-sm text-zinc-400">読み込み中...</p>}
-      {orders?.length === 0 && <p className="text-sm text-zinc-400">{emptyText}</p>}
-      <ul className="flex flex-col gap-2">
-        {orders?.map((o) => (
-          <li key={o.order_id}>
-            <button
-              onClick={() => onSelect(o.order_token)}
-              className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-4 py-3 text-left hover:bg-zinc-50"
-            >
+    <ul className="flex flex-col gap-2">
+      {orders.map((o) => (
+        <li key={o.order_id}>
+          <button
+            onClick={() => onSelect(o.order_token)}
+            className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-4 py-3 text-left hover:bg-zinc-50"
+          >
+            <div>
               <span className="font-mono font-medium">{o.order_token}</span>
-              <span className="text-sm text-zinc-500">
-                {o.items.reduce((n, i) => n + i.qty, 0)}点 / ¥{o.total_price.toLocaleString()}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
+              {showMeta && (
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  {formatTime(o.served_at)} 提供 ・{" "}
+                  {o.payment_method ? PAYMENT_LABEL[o.payment_method] : "-"}
+                </p>
+              )}
+            </div>
+            <span className="text-sm text-zinc-500">
+              {o.items.reduce((n, i) => n + i.qty, 0)}点 / ¥{o.total_price.toLocaleString()}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -50,23 +73,50 @@ export function RegisterScan({ stores }: { stores: Store[] }) {
   const searchParams = useSearchParams();
   const [storeId, setStoreId] = useState(stores[0]?.store_id ?? "");
   const [manualToken, setManualToken] = useState("");
+  const [tab, setTab] = useState<Tab>("unpaid");
   const [unpaid, setUnpaid] = useState<Order[] | null>(null);
   const [awaitingServe, setAwaitingServe] = useState<Order[] | null>(null);
+  const [served, setServed] = useState<Order[] | null>(null);
+  const storeIdRef = useRef(storeId);
+  useEffect(() => {
+    storeIdRef.current = storeId;
+  }, [storeId]);
 
   const flash = searchParams.get("flash");
   const flashMessage = flash ? FLASH_MESSAGE[flash] : null;
 
   function refresh() {
-    if (!storeId) return;
-    fetch(`/api/register/orders?store_id=${storeId}&status=unpaid`)
+    const currentStoreId = storeIdRef.current;
+    if (!currentStoreId) return;
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=unpaid`)
       .then((r) => r.json())
       .then((d) => setUnpaid(d.orders ?? []));
-    fetch(`/api/register/orders?store_id=${storeId}&status=paid`)
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=paid`)
       .then((r) => r.json())
       .then((d) => setAwaitingServe(d.orders ?? []));
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=served`)
+      .then((r) => r.json())
+      .then((d) => setServed(d.orders ?? []));
   }
 
   useEffect(refresh, [storeId]);
+
+  // Poll so other staff's payments/serves on other devices show up here without
+  // a manual reload — pause while the tab is backgrounded and catch up
+  // immediately when it becomes visible again instead of waiting out the timer.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, POLL_INTERVAL_MS);
+    function onVisible() {
+      if (document.visibilityState === "visible") refresh();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   // Clear the flash message from the URL after a moment so a reload doesn't re-show it.
   useEffect(() => {
@@ -78,6 +128,12 @@ export function RegisterScan({ stores }: { stores: Store[] }) {
   function goToToken(token: string) {
     router.push(`/register/order/${token.trim().toUpperCase()}`);
   }
+
+  const tabs: { key: Tab; label: string; orders: Order[] | null; emptyText: string }[] = [
+    { key: "unpaid", label: "会計待ち", orders: unpaid, emptyText: "会計待ちの注文はありません" },
+    { key: "paid", label: "提供待ち", orders: awaitingServe, emptyText: "提供待ちの注文はありません" },
+    { key: "served", label: "提供済み", orders: served, emptyText: "提供済みの注文はまだありません" },
+  ];
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
@@ -123,19 +179,38 @@ export function RegisterScan({ stores }: { stores: Store[] }) {
         </button>
       </form>
 
-      <div className="mt-8 flex flex-col gap-8">
-        <OrderList
-          title="会計待ちの注文"
-          orders={unpaid}
-          emptyText="現在ありません"
-          onSelect={goToToken}
-        />
-        <OrderList
-          title="提供待ちの注文"
-          orders={awaitingServe}
-          emptyText="現在ありません"
-          onSelect={goToToken}
-        />
+      <div className="mt-8">
+        <div className="mb-3 flex rounded-lg bg-zinc-100 p-1">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`relative flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+                tab === t.key ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
+              }`}
+            >
+              {t.label}
+              {t.orders && t.orders.length > 0 && t.key !== "served" && (
+                <span className="ml-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] text-white">
+                  {t.orders.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {tabs.map(
+          (t) =>
+            tab === t.key && (
+              <OrderList
+                key={t.key}
+                orders={t.orders}
+                emptyText={t.emptyText}
+                onSelect={goToToken}
+                showMeta={t.key === "served"}
+              />
+            )
+        )}
       </div>
     </div>
   );

@@ -204,15 +204,27 @@ export async function markOrderServed(
   return getOrderByToken(token);
 }
 
-export async function listOrdersForStore(storeId: string, status?: OrderStatus): Promise<Order[]> {
+export async function listOrdersForStore(
+  storeId: string,
+  status?: OrderStatus,
+  limit?: number
+): Promise<Order[]> {
+  // Served orders are a history log (kept for typo/mistake-checking), so most
+  // recently served first and capped by default; unpaid/paid stay unbounded
+  // since those are just the current work queue and should always be small.
   const rows = (
-    status
+    status === "served"
       ? await sql`
-          SELECT * FROM orders WHERE store_id = ${storeId} AND status = ${status} ORDER BY created_at DESC
+          SELECT * FROM orders WHERE store_id = ${storeId} AND status = 'served'
+          ORDER BY served_at DESC LIMIT ${limit ?? 50}
         `
-      : await sql`
-          SELECT * FROM orders WHERE store_id = ${storeId} ORDER BY created_at DESC
-        `
+      : status
+        ? await sql`
+            SELECT * FROM orders WHERE store_id = ${storeId} AND status = ${status} ORDER BY created_at DESC
+          `
+        : await sql`
+            SELECT * FROM orders WHERE store_id = ${storeId} ORDER BY created_at DESC
+          `
   ) as Record<string, unknown>[];
   return Promise.all(
     rows.map(async (row) => {
