@@ -18,7 +18,7 @@ export default async function AdminStoresPage() {
 
   return (
     <div className="min-h-screen">
-      <StaffHeader title="管理画面" name={session.displayName} />
+      <StaffHeader title="管理画面" name={session.displayName} backHref="/admin" backLabel="店舗一覧に戻る" />
       <StoreManager initialStores={await listStores()} />
     </div>
   );

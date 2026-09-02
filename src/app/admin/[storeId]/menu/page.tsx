@@ -25,7 +25,12 @@ export default async function AdminStoreMenuPage({
 
   return (
     <div className="min-h-screen">
-      <StaffHeader title={`管理画面 - ${store.name}`} name={session.displayName} />
+      <StaffHeader
+        title={`管理画面 - ${store.name}`}
+        name={session.displayName}
+        backHref="/admin"
+        backLabel="店舗一覧に戻る"
+      />
       <AdminMenu storeId={storeId} initialItems={items} />
     </div>
   );
