@@ -27,7 +27,7 @@ async function main() {
           ],
         },
         {
-          label: "温度",
+          label: "飲み方",
           required: true,
           multi_select: false,
           choices: [
@@ -62,7 +62,7 @@ async function main() {
           ],
         },
         {
-          label: "温度",
+          label: "飲み方",
           required: true,
           multi_select: false,
           choices: [
@@ -79,7 +79,7 @@ async function main() {
       category: "ラテ",
       option_groups: [
         {
-          label: "温度",
+          label: "飲み方",
           required: true,
           multi_select: false,
           choices: [
