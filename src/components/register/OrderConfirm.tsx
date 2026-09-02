@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Order, PaymentMethod } from "@/lib/types";
 
-export function OrderConfirm({ initialOrder }: { initialOrder: Order }) {
-  const [order, setOrder] = useState(initialOrder);
+export function OrderConfirm({ initialOrder: order }: { initialOrder: Order }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [servedIds, setServedIds] = useState<Set<string>>(new Set());
@@ -19,10 +18,14 @@ export function OrderConfirm({ initialOrder }: { initialOrder: Order }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "pay", payment_method: method }),
     });
-    setBusy(false);
-    if (!res.ok) return setError("会計処理に失敗しました");
-    const { order: updated } = await res.json();
-    setOrder(updated);
+    if (!res.ok) {
+      setBusy(false);
+      return setError("会計処理に失敗しました");
+    }
+    // Pay and serve are separate steps now: as soon as payment is recorded,
+    // the register is free to take the next customer. Serving happens later
+    // from the "提供待ちの注文" list, independently.
+    router.push("/register?flash=paid");
   }
 
   async function serve() {
@@ -39,10 +42,11 @@ export function OrderConfirm({ initialOrder }: { initialOrder: Order }) {
         })),
       }),
     });
-    setBusy(false);
-    if (!res.ok) return setError("提供記録に失敗しました");
-    const { order: updated } = await res.json();
-    setOrder(updated);
+    if (!res.ok) {
+      setBusy(false);
+      return setError("提供記録に失敗しました");
+    }
+    router.push("/register?flash=served");
   }
 
   const allServed = order.items.every((i) => servedIds.has(i.order_item_id));
