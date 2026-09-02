@@ -4,11 +4,22 @@ import { newId } from "@/lib/ids";
 import type { Customer } from "@/lib/types";
 
 /**
- * Customer identity comes from LINE, via LIFF, in production:
- * the client calls `liff.getIDToken()` and sends it as a bearer token;
- * we verify it server-side against LINE's endpoint rather than trusting
- * whatever profile fields the client sends, so nobody can place an order
- * (or read someone's "favorites") under another customer's identity.
+ * Customer identity comes from LINE, via LIFF, in production: the client
+ * sends `liff.getAccessToken()` as a bearer token, and we check it live
+ * against LINE's own profile endpoint rather than trusting anything the
+ * client claims, so nobody can place an order (or read someone's
+ * "favorites") under another customer's identity.
+ *
+ * Deliberately the access token, not `liff.getIDToken()`: the ID token is a
+ * JWT minted once at login with its own fixed expiry, and calling
+ * getIDToken() again just returns that same (possibly now-expired) string —
+ * there is no client-side refresh for it. The access token is the one LIFF's
+ * SDK actually keeps valid, auto-renewing it under the hood, so re-reading
+ * it right before each request is what makes "fetch a fresh token" actually
+ * fresh. (This bit a real customer: an order placed a few minutes after
+ * opening the app failed with a stale ID token even after an earlier fix
+ * that re-read getIDToken() per-request — the token itself just never
+ * became valid again.)
  *
  * Until a real LINE Login channel is wired up (see .env), requests carry a
  * locally-signed dev token instead (minted by POST /api/dev/token). It is
@@ -60,22 +71,20 @@ async function verifyDevToken(token: string): Promise<LineIdentity | null> {
   }
 }
 
-async function verifyLiffIdToken(idToken: string): Promise<LineIdentity | null> {
-  const channelId = process.env.LINE_LOGIN_CHANNEL_ID;
-  if (!channelId) return null;
-
-  const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ id_token: idToken, client_id: channelId }),
+async function verifyLiffAccessToken(accessToken: string): Promise<LineIdentity | null> {
+  // Calling LINE's own profile endpoint doubles as token verification: it
+  // only succeeds with a currently-valid access token, and hands back the
+  // user id straight from LINE's server rather than anything client-supplied.
+  const res = await fetch("https://api.line.me/v2/profile", {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) return null;
-  const data = (await res.json()) as { sub?: string; name?: string; picture?: string };
-  if (!data.sub) return null;
+  const data = (await res.json()) as { userId?: string; displayName?: string; pictureUrl?: string };
+  if (!data.userId) return null;
   return {
-    lineUserId: data.sub,
-    displayName: data.name ?? "ゲスト",
-    pictureUrl: data.picture ?? null,
+    lineUserId: data.userId,
+    displayName: data.displayName ?? "ゲスト",
+    pictureUrl: data.pictureUrl ?? null,
   };
 }
 
@@ -84,7 +93,7 @@ export async function verifyCustomerToken(token: string): Promise<LineIdentity |
     const dev = await verifyDevToken(token);
     if (dev) return dev;
   }
-  return await verifyLiffIdToken(token);
+  return await verifyLiffAccessToken(token);
 }
 
 export function getBearerToken(req: Request): string | null {

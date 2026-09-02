@@ -13,12 +13,12 @@ interface CustomerProfile {
 interface CustomerAuthState {
   ready: boolean;
   isDevMode: boolean;
-  /** Present once logged in — use to gate UI, but don't send it to the API: it can go
-   *  stale while the customer browses. Call getAuthToken() for actual requests. */
+  /** Present once logged in — use to gate UI, but don't send it to the API: it's a
+   *  snapshot from mount and getAuthToken() is what actually stays valid over time. */
   token: string | null;
-  /** Always returns a fresh token at call time (re-reads liff.getIDToken() rather than
-   *  a value cached at mount), since LINE ID tokens can expire while someone browses
-   *  the menu for a few minutes before checking out. */
+  /** Always returns a currently-valid token (re-reads liff.getAccessToken(), which the
+   *  LIFF SDK auto-refreshes, rather than a value cached at mount) — call this right
+   *  before every request instead of using `token` directly. */
   getAuthToken: () => Promise<string | null>;
   profile: CustomerProfile | null;
   /** Records the confirmed order in the customer's own LINE chat via liff.sendMessages (no-op outside real LIFF). */
@@ -48,11 +48,11 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           liff.login({ redirectUri: window.location.href });
           return; // page will reload after redirect
         }
-        const idToken = liff.getIDToken();
+        const accessToken = liff.getAccessToken();
         const p = await liff.getProfile();
         if (cancelled) return;
         setLiffInstance(liff);
-        setToken(idToken);
+        setToken(accessToken);
         setProfile({ displayName: p.displayName, pictureUrl: p.pictureUrl ?? null });
         setReady(true);
         return;
@@ -90,10 +90,11 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   async function getAuthToken(): Promise<string | null> {
     if (LIFF_ID) {
-      // Re-read from the SDK rather than returning the `token` state captured at
-      // mount — liff manages the underlying session and is the source of truth
-      // for whether that token is still valid.
-      return liffInstance ? (liffInstance.getIDToken() ?? null) : null;
+      // getAccessToken() (not getIDToken()) — the SDK keeps this one valid on
+      // its own, so re-reading it here at request time is what actually
+      // makes "fresh" mean something. See the server-side comment in
+      // src/lib/auth/customer.ts for why getIDToken() doesn't work for this.
+      return liffInstance ? (liffInstance.getAccessToken() ?? null) : null;
     }
     return localStorage.getItem(DEV_TOKEN_KEY);
   }
