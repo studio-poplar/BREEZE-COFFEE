@@ -29,6 +29,47 @@ function tempKey() {
   return `tmp-${tempKeySeq}`;
 }
 
+const MAX_DIMENSION = 1600;
+
+// Phone camera photos routinely arrive well over our 4MB upload cap, and
+// iPhones default to HEIC (which most non-Safari browsers can't even
+// decode). Downscaling through a canvas fixes the size problem for any
+// format the browser CAN decode, and incidentally re-encodes everything to
+// JPEG/PNG along the way. If the browser can't decode the source at all
+// (e.g. a raw HEIC file in Chrome), this falls back to the original file
+// and lets the server reject it with a specific, actionable message.
+async function resizeImage(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return file;
+
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  // Keep PNG's transparency; flatten everything else to JPEG for the best
+  // size/quality tradeoff on a photo.
+  const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, outputType, 0.85));
+  if (!blob) return file;
+
+  const ext = outputType === "image/png" ? "png" : "jpg";
+  return new File([blob], `${file.name.replace(/\.\w+$/, "")}.${ext}`, { type: outputType });
+}
+
+const UPLOAD_ERROR_MESSAGE: Record<string, string> = {
+  unsupported_type:
+    "対応していない画像形式です。写真アプリでJPEGまたはPNGとして保存し直してからお試しください。",
+  file_too_large: "ファイルサイズが大きすぎます(4MBまで)。",
+};
+
 export function MenuItemForm({
   storeId,
   item,
@@ -47,21 +88,25 @@ export function MenuItemForm({
   const [active, setActive] = useState(item ? !!item.active : true);
   const [groups, setGroups] = useState<FormOptionGroup[]>(toFormGroups(item));
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleUpload(file: File) {
     setUploading(true);
-    setError(null);
+    setUploadError(null);
     try {
+      const resized = await resizeImage(file);
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", resized);
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
-      if (!res.ok) throw new Error("upload failed");
-      const { path } = await res.json();
-      setImagePath(path);
-    } catch {
-      setError("画像のアップロードに失敗しました");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(UPLOAD_ERROR_MESSAGE[data?.error] ?? "画像のアップロードに失敗しました");
+      }
+      setImagePath(data.path);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "画像のアップロードに失敗しました");
     } finally {
       setUploading(false);
     }
@@ -162,6 +207,7 @@ export function MenuItemForm({
             />
           </label>
         </div>
+        {uploadError && <p className="mb-4 -mt-2 text-xs text-red-500">{uploadError}</p>}
 
         <label className="mb-1 block text-xs text-zinc-500">商品名</label>
         <input
