@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import { getStaffSession } from "@/lib/auth/staff";
 import { getStore } from "@/lib/data/stores";
-import { listMenu } from "@/lib/data/menu";
 import { StaffLoginForm } from "@/components/staff/LoginForm";
 import { StaffHeader } from "@/components/staff/StaffHeader";
-import { AdminMenu } from "@/components/admin/AdminMenu";
+import { SalesReport } from "@/components/admin/SalesReport";
 import { AdminStoreNav } from "@/components/admin/AdminStoreNav";
 
-export default async function AdminStoreMenuPage({
+export default async function AdminStoreSalesPage({
   params,
 }: {
   params: Promise<{ storeId: string }>;
@@ -22,8 +21,6 @@ export default async function AdminStoreMenuPage({
     return <p className="mt-16 text-center text-sm text-zinc-400">この店舗を管理する権限がありません</p>;
   }
 
-  const items = await listMenu(storeId, { includeInactive: true });
-
   return (
     <div className="min-h-screen">
       <StaffHeader
@@ -32,8 +29,8 @@ export default async function AdminStoreMenuPage({
         backHref="/admin"
         backLabel="店舗一覧に戻る"
       />
-      <AdminStoreNav storeId={storeId} active="menu" />
-      <AdminMenu storeId={storeId} initialItems={items} />
+      <AdminStoreNav storeId={storeId} active="sales" />
+      <SalesReport storeId={storeId} />
     </div>
   );
 }

@@ -30,17 +30,22 @@ export default async function AdminPage() {
         </div>
         <ul className="flex flex-col gap-2">
           {stores.map((s) => (
-            <li key={s.store_id}>
-              <Link
-                href={`/admin/${s.store_id}/menu`}
-                className="flex items-center justify-between rounded-lg border border-zinc-100 px-4 py-3 hover:bg-zinc-50"
-              >
+            <li key={s.store_id} className="rounded-lg border border-zinc-100 px-4 py-3">
+              <div className="flex items-center justify-between">
                 <span className="font-medium">{s.name}</span>
                 <span className="text-xs text-zinc-400">
                   {s.type === "permanent" ? "常設店" : "間借りカフェ"}
                   {!s.active && "・非公開"}
                 </span>
-              </Link>
+              </div>
+              <div className="mt-2 flex gap-4 text-sm">
+                <Link href={`/admin/${s.store_id}/menu`} className="text-zinc-600 underline">
+                  メニュー
+                </Link>
+                <Link href={`/admin/${s.store_id}/sales`} className="text-zinc-600 underline">
+                  売上
+                </Link>
+              </div>
             </li>
           ))}
           {stores.length === 0 && <p className="text-sm text-zinc-400">店舗がまだありません</p>}
