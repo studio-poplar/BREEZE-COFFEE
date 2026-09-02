@@ -42,6 +42,25 @@ export async function verifyStaffPassword(
   return publicStaff;
 }
 
+export class PasswordChangeError extends Error {}
+
+export async function changeStaffPassword(
+  staffId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const rows = (await sql`
+    SELECT password_hash FROM staff WHERE staff_id = ${staffId}
+  `) as { password_hash: string }[];
+  if (!rows[0]) throw new PasswordChangeError("アカウントが見つかりません");
+
+  const ok = await bcrypt.compare(currentPassword, rows[0].password_hash);
+  if (!ok) throw new PasswordChangeError("現在のパスワードが違います");
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await sql`UPDATE staff SET password_hash = ${newHash} WHERE staff_id = ${staffId}`;
+}
+
 export async function createStaff(input: {
   username: string;
   password: string;

@@ -36,9 +36,14 @@ export function StaffHeader({
         <p className="text-sm font-bold">{title}</p>
         <p className="text-xs text-zinc-400">{name} でログイン中</p>
       </div>
-      <button onClick={logout} className="text-xs text-zinc-400 underline">
-        ログアウト
-      </button>
+      <div className="flex flex-col items-end gap-1.5">
+        <Link href="/staff/password" className="text-xs text-zinc-400 underline">
+          パスワード変更
+        </Link>
+        <button onClick={logout} className="text-xs text-zinc-400 underline">
+          ログアウト
+        </button>
+      </div>
     </header>
   );
 }
