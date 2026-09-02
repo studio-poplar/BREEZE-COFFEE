@@ -66,23 +66,31 @@ export function OrderShell({ store, children }: { store: Store; children: ReactN
     return <DevLoginForm onSubmit={setDevName} />;
   }
 
-  const navItem = (href: string, label: string, badge?: number) => (
-    <Link
-      href={href}
-      className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${
-        pathname === href ? "font-semibold text-zinc-900" : "text-zinc-400"
-      }`}
-    >
-      <span className="relative">
-        {label}
-        {!!badge && (
-          <span className="absolute -right-3 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] text-white">
-            {badge}
-          </span>
-        )}
-      </span>
-    </Link>
-  );
+  const navItem = (href: string, label: string, icon: ReactNode, badge?: number) => {
+    const active = pathname === href;
+    return (
+      <Link
+        href={href}
+        className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 active:bg-zinc-50"
+      >
+        <span
+          className={`relative grid h-9 w-9 place-items-center rounded-full ${
+            active ? "bg-zinc-900 text-white" : "text-zinc-400"
+          }`}
+        >
+          {icon}
+          {!!badge && (
+            <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className={`text-[11px] ${active ? "font-semibold text-zinc-900" : "text-zinc-400"}`}>
+          {label}
+        </span>
+      </Link>
+    );
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -92,12 +100,43 @@ export function OrderShell({ store, children }: { store: Store; children: ReactN
           {profile && <p className="text-xs text-zinc-400">{profile.displayName} さん</p>}
         </div>
       </header>
-      <main className="flex-1 pb-16">{children}</main>
-      <nav className="fixed bottom-0 left-0 right-0 mx-auto flex max-w-md border-t border-zinc-100 bg-white">
-        {navItem(base, "メニュー")}
-        {navItem(`${base}/favorites`, "いつもの")}
-        {navItem(`${base}/cart`, "カート", count)}
+      <main className="flex-1 pb-20">{children}</main>
+      <nav
+        className="fixed bottom-0 left-0 right-0 mx-auto flex max-w-md border-t border-zinc-100 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.04)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {navItem(base, "メニュー", <MenuIcon />)}
+        {navItem(`${base}/favorites`, "いつもの", <HeartIcon />)}
+        {navItem(`${base}/cart`, "カート", <CartIcon />, count)}
       </nav>
     </div>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+function HeartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20.5s-7-4.4-9.5-8.9C.8 8.4 2.3 5 5.7 5c2 0 3.5 1.2 4.5 2.7C11.2 6.2 12.7 5 14.7 5c3.4 0 4.9 3.4 3.2 6.6-2.5 4.5-9.5 8.9-9.5 8.9z" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8h12l-1 12.5H7L6 8z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
   );
 }
