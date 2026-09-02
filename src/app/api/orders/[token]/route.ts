@@ -12,7 +12,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
 
 const payBody = z.object({
   action: z.literal("pay"),
-  payment_method: z.enum(["cash", "card"]),
+  payment_method: z.enum(["cash", "card", "emoney", "qr"]),
 });
 
 const serveBody = z.object({

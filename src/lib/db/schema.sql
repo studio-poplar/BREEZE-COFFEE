@@ -75,12 +75,19 @@ CREATE TABLE IF NOT EXISTS orders (
   store_id        TEXT NOT NULL REFERENCES stores(store_id),
   customer_id     TEXT NOT NULL REFERENCES customers(customer_id),
   status          TEXT NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid', 'served')),
-  payment_method  TEXT CHECK (payment_method IN ('cash', 'card')),
+  payment_method  TEXT CHECK (payment_method IN ('cash', 'card', 'emoney', 'qr')),
   total_price     INTEGER NOT NULL,
   created_at      TEXT NOT NULL,
   paid_at         TEXT,
   served_at       TEXT
 );
+
+-- CREATE TABLE's inline CHECK above only applies to a brand-new table; widen
+-- it on an already-existing one too (added when 電子マネー/QRコード決済
+-- joined 現金/カード as payment options). Safe to run repeatedly.
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_method_check;
+ALTER TABLE orders ADD CONSTRAINT orders_payment_method_check
+  CHECK (payment_method IN ('cash', 'card', 'emoney', 'qr'));
 
 CREATE TABLE IF NOT EXISTS order_items (
   order_item_id     TEXT PRIMARY KEY,

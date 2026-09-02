@@ -49,7 +49,7 @@ export interface SelectedOption {
 }
 
 export type OrderStatus = "unpaid" | "paid" | "served";
-export type PaymentMethod = "cash" | "card";
+export type PaymentMethod = "cash" | "card" | "emoney" | "qr";
 
 export interface OrderItem {
   order_item_id: string;
