@@ -31,9 +31,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
   }
 
+  // Passed explicitly: the SDK otherwise prefers Vercel's OIDC token when
+  // one is present in the environment, which isn't valid for Blob access
+  // locally and fails with "OIDC is enabled ... but not for the
+  // 'development' environment" even though BLOB_READ_WRITE_TOKEN is set.
   const blob = await put(`menu-photos/${newId()}.${ext}`, file, {
     access: "public",
     contentType: file.type,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
   });
 
   return NextResponse.json({ path: blob.url }, { status: 201 });
