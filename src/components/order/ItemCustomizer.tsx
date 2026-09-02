@@ -11,7 +11,7 @@ import type { MenuItem, SelectedOption } from "@/lib/types";
 export function ItemCustomizer({ storeId, item }: { storeId: string; item: MenuItem }) {
   const router = useRouter();
   const { addLine } = useCart(storeId);
-  const { token } = useCustomerAuth();
+  const { token, getAuthToken } = useCustomerAuth();
   const [selection, setSelection] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
   const [favoriteSaved, setFavoriteSaved] = useState(false);
@@ -141,16 +141,17 @@ export function ItemCustomizer({ storeId, item }: { storeId: string; item: MenuI
         type="button"
         disabled={missingRequired || savingFavorite || favoriteSaved || !token}
         onClick={async () => {
-          if (!token) return;
           setSavingFavorite(true);
           try {
+            const freshToken = await getAuthToken();
+            if (!freshToken) return;
             const label =
               selectedOptions.length > 0
                 ? `${item.name} (${selectedOptions.map((o) => o.choice_label).join("/")})`
                 : item.name;
             await apiFetch("/api/favorites", {
               method: "POST",
-              token,
+              token: freshToken,
               body: JSON.stringify({ item_id: item.item_id, label, selected_options: selectedOptions }),
             });
             setFavoriteSaved(true);

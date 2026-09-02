@@ -13,7 +13,13 @@ interface CustomerProfile {
 interface CustomerAuthState {
   ready: boolean;
   isDevMode: boolean;
+  /** Present once logged in — use to gate UI, but don't send it to the API: it can go
+   *  stale while the customer browses. Call getAuthToken() for actual requests. */
   token: string | null;
+  /** Always returns a fresh token at call time (re-reads liff.getIDToken() rather than
+   *  a value cached at mount), since LINE ID tokens can expire while someone browses
+   *  the menu for a few minutes before checking out. */
+  getAuthToken: () => Promise<string | null>;
   profile: CustomerProfile | null;
   /** Records the confirmed order in the customer's own LINE chat via liff.sendMessages (no-op outside real LIFF). */
   recordOrderMessage: (text: string) => Promise<void>;
@@ -82,6 +88,16 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     setProfile({ displayName: name, pictureUrl: null });
   }
 
+  async function getAuthToken(): Promise<string | null> {
+    if (LIFF_ID) {
+      // Re-read from the SDK rather than returning the `token` state captured at
+      // mount — liff manages the underlying session and is the source of truth
+      // for whether that token is still valid.
+      return liffInstance ? (liffInstance.getIDToken() ?? null) : null;
+    }
+    return localStorage.getItem(DEV_TOKEN_KEY);
+  }
+
   async function recordOrderMessage(text: string) {
     if (!liffInstance || !liffInstance.isInClient?.()) return;
     try {
@@ -93,7 +109,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <CustomerAuthContext.Provider
-      value={{ ready, isDevMode: !LIFF_ID, token, profile, recordOrderMessage, setDevName }}
+      value={{ ready, isDevMode: !LIFF_ID, token, getAuthToken, profile, recordOrderMessage, setDevName }}
     >
       {children}
     </CustomerAuthContext.Provider>

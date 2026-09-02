@@ -10,19 +10,24 @@ import type { Order } from "@/lib/types";
 export default function CartPage({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = use(params);
   const { lines, updateQty, total, clear } = useCart(storeId);
-  const { token, recordOrderMessage } = useCustomerAuth();
+  const { getAuthToken, recordOrderMessage } = useCustomerAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submitOrder() {
-    if (!token || lines.length === 0) return;
+    if (lines.length === 0) return;
     setSubmitting(true);
     setError(null);
     try {
+      // Fetched fresh rather than reusing the token captured when this page
+      // loaded — the customer may have spent a few minutes browsing/customizing
+      // before checking out, long enough for a cached LINE ID token to expire.
+      const freshToken = await getAuthToken();
+      if (!freshToken) throw new Error("ログインし直してから注文してください");
       const { order } = await apiFetch<{ order: Order }>("/api/orders", {
         method: "POST",
-        token,
+        token: freshToken,
         body: JSON.stringify({
           store_id: storeId,
           lines: lines.map((l) => ({ item_id: l.item_id, qty: l.qty, choice_ids: l.choice_ids })),
@@ -35,7 +40,12 @@ export default function CartPage({ params }: { params: Promise<{ storeId: string
       clear();
       router.push(`/order/${storeId}/ticket/${order.order_token}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "注文に失敗しました");
+      const message = e instanceof Error ? e.message : "";
+      setError(
+        message === "unauthenticated"
+          ? "ログインの有効期限が切れました。画面を再読み込みしてからもう一度お試しください。"
+          : message || "注文に失敗しました"
+      );
     } finally {
       setSubmitting(false);
     }

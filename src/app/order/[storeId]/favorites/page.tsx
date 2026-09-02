@@ -9,21 +9,26 @@ import type { ResolvedFavorite } from "@/lib/types";
 
 export default function FavoritesPage({ params }: { params: Promise<{ storeId: string }> }) {
   const { storeId } = use(params);
-  const { token, ready } = useCustomerAuth();
+  const { token, ready, getAuthToken } = useCustomerAuth();
   const { addLine } = useCart(storeId);
   const router = useRouter();
   const [favorites, setFavorites] = useState<ResolvedFavorite[] | null>(null);
 
   useEffect(() => {
     if (!ready || !token) return;
-    apiFetch<{ favorites: ResolvedFavorite[] }>(`/api/favorites?store_id=${storeId}`, { token }).then(
-      (res) => setFavorites(res.favorites)
-    );
+    getAuthToken().then((freshToken) => {
+      if (!freshToken) return;
+      apiFetch<{ favorites: ResolvedFavorite[] }>(`/api/favorites?store_id=${storeId}`, {
+        token: freshToken,
+      }).then((res) => setFavorites(res.favorites));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, token, storeId]);
 
   async function remove(favoriteId: string) {
-    if (!token) return;
-    await apiFetch(`/api/favorites/${favoriteId}`, { method: "DELETE", token });
+    const freshToken = await getAuthToken();
+    if (!freshToken) return;
+    await apiFetch(`/api/favorites/${favoriteId}`, { method: "DELETE", token: freshToken });
     setFavorites((prev) => prev?.filter((f) => f.favorite_id !== favoriteId) ?? null);
   }
 
