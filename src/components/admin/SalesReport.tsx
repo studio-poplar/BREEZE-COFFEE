@@ -65,6 +65,15 @@ function formatDateLabel(dateStr: string): string {
   return `${Number(m)}/${Number(d)}`;
 }
 
+const LOW_MARGIN_THRESHOLD = 30;
+const HIGH_MARGIN_THRESHOLD = 60;
+
+function marginBadgeClass(pct: number): string {
+  if (pct >= HIGH_MARGIN_THRESHOLD) return "bg-emerald-50 text-emerald-700";
+  if (pct >= LOW_MARGIN_THRESHOLD) return "bg-amber-50 text-amber-700";
+  return "bg-red-50 text-red-700";
+}
+
 export function SalesReport({ storeId }: { storeId: string }) {
   const [preset, setPreset] = useState<PresetKey>("today");
   const [range, setRange] = useState(() => presetRange("today"));
@@ -95,6 +104,11 @@ export function SalesReport({ storeId }: { storeId: string }) {
 
   const maxDaily = useMemo(
     () => Math.max(1, ...(report?.daily.map((d) => d.revenue) ?? [0])),
+    [report]
+  );
+
+  const lowMarginItems = useMemo(
+    () => report?.topItems.filter((i) => i.marginPct < LOW_MARGIN_THRESHOLD) ?? [],
     [report]
   );
 
@@ -147,6 +161,7 @@ export function SalesReport({ storeId }: { storeId: string }) {
 
       {report && (
         <>
+          <h2 className="mb-2 text-sm font-semibold text-zinc-500">売上サマリー</h2>
           <div className="mb-6 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-zinc-200 p-4">
               <p className="text-xs text-zinc-500">売上合計</p>
@@ -166,29 +181,118 @@ export function SalesReport({ storeId }: { storeId: string }) {
             </div>
           </div>
 
+          <h2 className="mb-2 text-sm font-semibold text-zinc-500">収益性(原価・粗利)</h2>
+          <div className="mb-6 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-zinc-200 p-4">
+              <p className="text-xs text-zinc-500">原価合計</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-orange-600">
+                ¥{report.summary.totalCost.toLocaleString()}
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">原価率 {report.summary.costRatio.toFixed(1)}%</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 p-4">
+              <p className="text-xs text-zinc-500">粗利益</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-emerald-700">
+                ¥{report.summary.grossProfit.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 p-4">
+              <p className="text-xs text-zinc-500">粗利率</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-emerald-700">
+                {report.summary.profitMarginPct.toFixed(1)}%
+              </p>
+              <div className="mt-2 h-1.5 rounded-full bg-zinc-100">
+                <div
+                  className="h-1.5 rounded-full bg-emerald-600"
+                  style={{ width: `${Math.min(100, Math.max(0, report.summary.profitMarginPct))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
           {report.daily.length > 1 && (
             <section className="mb-6">
-              <h2 className="mb-2 text-sm font-semibold text-zinc-500">日別売上</h2>
-              <div className="flex flex-col gap-1.5 rounded-xl border border-zinc-200 p-4">
-                {report.daily.map((d) => (
-                  <div key={d.date} className="flex items-center gap-3 text-sm">
-                    <span className="w-10 shrink-0 text-xs text-zinc-400">{formatDateLabel(d.date)}</span>
-                    <div className="h-5 flex-1 rounded bg-zinc-100">
-                      <div
-                        className="h-5 rounded bg-zinc-900"
-                        style={{ width: `${(d.revenue / maxDaily) * 100}%` }}
-                      />
+              <h2 className="mb-2 text-sm font-semibold text-zinc-500">売上・原価の推移</h2>
+              <div className="rounded-xl border border-zinc-200 p-4">
+                <div className="mb-3 flex gap-4 text-xs text-zinc-500">
+                  <span><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-zinc-900 align-[-1px]" />粗利</span>
+                  <span><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-orange-300 align-[-1px]" />原価</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {report.daily.map((d) => (
+                    <div key={d.date} className="flex items-center gap-3 text-sm">
+                      <span className="w-10 shrink-0 text-xs text-zinc-400">{formatDateLabel(d.date)}</span>
+                      <div className="flex h-5 flex-1 overflow-hidden rounded bg-zinc-100">
+                        <div
+                          className="h-5 bg-orange-300"
+                          style={{ width: `${(d.cost / maxDaily) * 100}%` }}
+                        />
+                        <div
+                          className="h-5 bg-zinc-900"
+                          style={{ width: `${(d.profit / maxDaily) * 100}%` }}
+                        />
+                      </div>
+                      <span className="w-20 shrink-0 text-right tabular-nums text-zinc-600">
+                        ¥{d.revenue.toLocaleString()}
+                      </span>
                     </div>
-                    <span className="w-20 shrink-0 text-right tabular-nums text-zinc-600">
-                      ¥{d.revenue.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </section>
           )}
 
           <section className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold text-zinc-500">商品別 収益性</h2>
+            {report.topItems.length === 0 ? (
+              <p className="text-sm text-zinc-400">データがありません</p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-zinc-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-zinc-50 text-xs text-zinc-500">
+                      <th className="px-3 py-2.5 text-left font-normal">商品</th>
+                      <th className="px-3 py-2.5 text-right font-normal">販売数</th>
+                      <th className="px-3 py-2.5 text-right font-normal">売上</th>
+                      <th className="px-3 py-2.5 text-right font-normal">原価</th>
+                      <th className="px-3 py-2.5 text-right font-normal">粗利</th>
+                      <th className="px-3 py-2.5 text-right font-normal">粗利率</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.topItems.map((item, i) => (
+                      <tr key={item.itemName} className="border-t border-zinc-100">
+                        <td className="px-3 py-2.5">
+                          <span className="mr-1.5 text-xs text-zinc-400">{i + 1}</span>
+                          {item.itemName}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-zinc-500">{item.qty}点</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">¥{item.revenue.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-orange-600">
+                          ¥{item.cost.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums font-medium">
+                          ¥{item.profit.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${marginBadgeClass(item.marginPct)}`}>
+                            {item.marginPct.toFixed(0)}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {lowMarginItems.length > 0 && (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                粗利率{LOW_MARGIN_THRESHOLD}%未満の商品があります({lowMarginItems.map((i) => i.itemName).join("、")})。価格または原価の見直しをおすすめします。
+              </div>
+            )}
+          </section>
+
+          <section>
             <h2 className="mb-2 text-sm font-semibold text-zinc-500">支払い方法別</h2>
             {report.byPaymentMethod.length === 0 ? (
               <p className="text-sm text-zinc-400">データがありません</p>
@@ -202,29 +306,6 @@ export function SalesReport({ storeId }: { storeId: string }) {
                     <span>{PAYMENT_LABEL[p.paymentMethod]}</span>
                     <span className="text-zinc-500">{p.orderCount}件</span>
                     <span className="font-medium tabular-nums">¥{p.revenue.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-semibold text-zinc-500">売れ筋商品</h2>
-            {report.topItems.length === 0 ? (
-              <p className="text-sm text-zinc-400">データがありません</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {report.topItems.map((item, i) => (
-                  <li
-                    key={item.itemName}
-                    className="flex items-center justify-between rounded-lg border border-zinc-100 px-4 py-2.5 text-sm"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">{i + 1}</span>
-                      {item.itemName}
-                    </span>
-                    <span className="text-zinc-500">{item.qty}点</span>
-                    <span className="font-medium tabular-nums">¥{item.revenue.toLocaleString()}</span>
                   </li>
                 ))}
               </ul>

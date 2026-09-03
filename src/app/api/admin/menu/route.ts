@@ -31,6 +31,7 @@ const bodySchema = z.object({
   store_id: z.string().min(1),
   name: z.string().min(1).max(60),
   price: z.number().int().min(0),
+  cost_price: z.number().int().min(0).default(0),
   category: z.string().max(40).default(""),
   image_path: z.string().nullable().optional(),
   active: z.boolean().optional(),

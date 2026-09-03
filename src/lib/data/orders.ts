@@ -38,6 +38,7 @@ async function loadItems(orderId: string): Promise<OrderItem[]> {
     item_id: r.item_id as string,
     item_name_snapshot: r.item_name_snapshot as string,
     unit_price: r.unit_price as number,
+    cost_price_snapshot: (r.cost_price_snapshot as number) ?? 0,
     qty: r.qty as number,
     selected_options: JSON.parse(r.selected_options as string) as SelectedOption[],
   }));
@@ -83,6 +84,7 @@ export async function createOrder(
     item_id: string;
     item_name_snapshot: string;
     unit_price: number;
+    cost_price_snapshot: number;
     qty: number;
     selected_options: SelectedOption[];
   }[] = [];
@@ -121,6 +123,7 @@ export async function createOrder(
       item_id: menuItem.item_id,
       item_name_snapshot: menuItem.name,
       unit_price: unitPrice,
+      cost_price_snapshot: menuItem.cost_price,
       qty: line.qty,
       selected_options: selected,
     });
@@ -143,9 +146,9 @@ export async function createOrder(
         `,
         ...preparedItems.map(
           (item) => tx`
-            INSERT INTO order_items (order_item_id, order_id, item_id, item_name_snapshot, unit_price, qty, selected_options)
+            INSERT INTO order_items (order_item_id, order_id, item_id, item_name_snapshot, unit_price, cost_price_snapshot, qty, selected_options)
             VALUES (${item.order_item_id}, ${order_id}, ${item.item_id}, ${item.item_name_snapshot},
-              ${item.unit_price}, ${item.qty}, ${JSON.stringify(item.selected_options)})
+              ${item.unit_price}, ${item.cost_price_snapshot}, ${item.qty}, ${JSON.stringify(item.selected_options)})
           `
         ),
       ]);

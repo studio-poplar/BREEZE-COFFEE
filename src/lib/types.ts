@@ -33,6 +33,7 @@ export interface MenuItem {
   store_id: string;
   name: string;
   price: number;
+  cost_price: number;
   category: string;
   image_path: string | null;
   active: boolean;
@@ -57,6 +58,7 @@ export interface OrderItem {
   item_id: string;
   item_name_snapshot: string;
   unit_price: number;
+  cost_price_snapshot: number;
   qty: number;
   selected_options: SelectedOption[];
 }
@@ -101,6 +103,7 @@ export interface ResolvedFavorite extends Favorite {
 export interface MenuItemInput {
   name: string;
   price: number;
+  cost_price?: number;
   category: string;
   image_path?: string | null;
   active?: boolean;

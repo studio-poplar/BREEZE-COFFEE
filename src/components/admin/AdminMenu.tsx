@@ -62,6 +62,11 @@ export function AdminMenu({ storeId, initialItems }: { storeId: string; initialI
               </p>
               <p className="text-sm text-zinc-500">
                 ¥{item.price.toLocaleString()} / {item.category || "未分類"}
+                {item.price > 0 && (
+                  <span className="ml-2 text-zinc-400">
+                    粗利率{(((item.price - item.cost_price) / item.price) * 100).toFixed(0)}%
+                  </span>
+                )}
               </p>
             </div>
             <button onClick={() => setEditing(item)} className="text-xs text-zinc-500 underline">

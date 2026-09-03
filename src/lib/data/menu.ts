@@ -77,8 +77,8 @@ export async function createMenuItem(storeId: string, input: MenuItemInput): Pro
 
   await sql.transaction((tx) => [
     tx`
-      INSERT INTO menu_items (item_id, store_id, name, price, category, image_path, active, sort_order, created_at)
-      VALUES (${item_id}, ${storeId}, ${input.name}, ${input.price}, ${input.category},
+      INSERT INTO menu_items (item_id, store_id, name, price, cost_price, category, image_path, active, sort_order, created_at)
+      VALUES (${item_id}, ${storeId}, ${input.name}, ${input.price}, ${input.cost_price ?? 0}, ${input.category},
         ${input.image_path ?? null}, ${input.active !== false}, ${input.sort_order ?? 0}, ${new Date().toISOString()})
     `,
     ...groupRows.map(
@@ -113,8 +113,8 @@ export async function updateMenuItem(
   // so replacing them wholesale is simpler and safer than diffing.
   await sql.transaction((tx) => [
     tx`
-      UPDATE menu_items SET name = ${input.name}, price = ${input.price}, category = ${input.category},
-        image_path = ${input.image_path ?? null}, active = ${input.active !== false},
+      UPDATE menu_items SET name = ${input.name}, price = ${input.price}, cost_price = ${input.cost_price ?? 0},
+        category = ${input.category}, image_path = ${input.image_path ?? null}, active = ${input.active !== false},
         sort_order = ${input.sort_order ?? 0}
       WHERE item_id = ${itemId}
     `,

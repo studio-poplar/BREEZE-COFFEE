@@ -83,6 +83,7 @@ export function MenuItemForm({
 }) {
   const [name, setName] = useState(item?.name ?? "");
   const [price, setPrice] = useState(item?.price ?? 0);
+  const [costPrice, setCostPrice] = useState(item?.cost_price ?? 0);
   const [category, setCategory] = useState(item?.category ?? "");
   const [imagePath, setImagePath] = useState<string | null>(item?.image_path ?? null);
   const [active, setActive] = useState(item ? !!item.active : true);
@@ -162,6 +163,7 @@ export function MenuItemForm({
       store_id: storeId,
       name,
       price,
+      cost_price: costPrice,
       category,
       image_path: imagePath,
       active,
@@ -216,7 +218,7 @@ export function MenuItemForm({
           className="mb-3 w-full rounded-lg border border-zinc-300 px-3 py-2"
         />
 
-        <div className="mb-3 grid grid-cols-2 gap-3">
+        <div className="mb-1 grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-xs text-zinc-500">価格</label>
             <input
@@ -227,14 +229,27 @@ export function MenuItemForm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">カテゴリ</label>
+            <label className="mb-1 block text-xs text-zinc-500">原価</label>
             <input
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              type="number"
+              value={costPrice}
+              onChange={(e) => setCostPrice(Number(e.target.value))}
               className="w-full rounded-lg border border-zinc-300 px-3 py-2"
             />
           </div>
         </div>
+        <p className="mb-3 text-xs text-zinc-400">
+          {price > 0
+            ? `粗利率 ${(((price - costPrice) / price) * 100).toFixed(0)}% (粗利 ¥${(price - costPrice).toLocaleString()})`
+            : "材料費(豆・ミルク・容器など)の合計を入力すると粗利率が売上管理に反映されます"}
+        </p>
+
+        <label className="mb-1 block text-xs text-zinc-500">カテゴリ</label>
+        <input
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="mb-3 w-full rounded-lg border border-zinc-300 px-3 py-2"
+        />
 
         <label className="mb-4 flex items-center gap-2 text-sm">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

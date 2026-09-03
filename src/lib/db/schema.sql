@@ -37,12 +37,17 @@ CREATE TABLE IF NOT EXISTS menu_items (
   store_id      TEXT NOT NULL REFERENCES stores(store_id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   price         INTEGER NOT NULL,
+  cost_price    INTEGER NOT NULL DEFAULT 0,  -- 原価 (材料費など), for gross-margin reporting
   category      TEXT NOT NULL DEFAULT '',
   image_path    TEXT,
   active        BOOLEAN NOT NULL DEFAULT true,
   sort_order    INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL
 );
+
+-- ADD COLUMN's inline default above only backfills brand-new tables; widen an
+-- already-existing one too. Safe to run repeatedly.
+ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS cost_price INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS option_groups (
   group_id      TEXT PRIMARY KEY,
@@ -95,9 +100,12 @@ CREATE TABLE IF NOT EXISTS order_items (
   item_id           TEXT NOT NULL REFERENCES menu_items(item_id),
   item_name_snapshot TEXT NOT NULL,
   unit_price        INTEGER NOT NULL,
+  cost_price_snapshot INTEGER NOT NULL DEFAULT 0, -- menu_items.cost_price at order time, so later cost edits don't rewrite past reports
   qty               INTEGER NOT NULL,
   selected_options  TEXT NOT NULL DEFAULT '[]' -- JSON: [{groupLabel, choiceLabel, extraPrice}]
 );
+
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS cost_price_snapshot INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS serve_records (
   order_item_id   TEXT PRIMARY KEY REFERENCES order_items(order_item_id) ON DELETE CASCADE,
