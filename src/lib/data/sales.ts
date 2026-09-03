@@ -69,12 +69,17 @@ export async function getSalesReport(storeId: string, from: string, to: string):
       WHERE store_id = ${storeId} AND status IN ('paid', 'served')
         AND paid_at >= ${fromUtc} AND paid_at < ${toUtc}
     `,
-    // cost lives on order_items (per line, snapshotted at order time), so it
-    // needs its own join rather than a column on orders.
+    // Cost is looked up from the menu item's *current* cost_price, not a
+    // value frozen at order time — for a small cafe, "what's my margin"
+    // should always reflect the latest ingredient cost, including for past
+    // orders, rather than requiring every past sale to have had a cost set
+    // at the time. menu_items rows are never deleted while orders reference
+    // them (delete is blocked, see deleteMenuItem), so this join is safe.
     sql`
-      SELECT COALESCE(SUM(oi.cost_price_snapshot * oi.qty), 0) AS total_cost
+      SELECT COALESCE(SUM(mi.cost_price * oi.qty), 0) AS total_cost
       FROM order_items oi
       JOIN orders o ON o.order_id = oi.order_id
+      JOIN menu_items mi ON mi.item_id = oi.item_id
       WHERE o.store_id = ${storeId} AND o.status IN ('paid', 'served')
         AND o.paid_at >= ${fromUtc} AND o.paid_at < ${toUtc}
     `,
@@ -88,9 +93,10 @@ export async function getSalesReport(storeId: string, from: string, to: string):
     `,
     sql`
       SELECT oi.item_name_snapshot AS item_name, SUM(oi.qty) AS qty,
-        SUM(oi.unit_price * oi.qty) AS revenue, SUM(oi.cost_price_snapshot * oi.qty) AS cost
+        SUM(oi.unit_price * oi.qty) AS revenue, SUM(mi.cost_price * oi.qty) AS cost
       FROM order_items oi
       JOIN orders o ON o.order_id = oi.order_id
+      JOIN menu_items mi ON mi.item_id = oi.item_id
       WHERE o.store_id = ${storeId} AND o.status IN ('paid', 'served')
         AND o.paid_at >= ${fromUtc} AND o.paid_at < ${toUtc}
       GROUP BY oi.item_name_snapshot
@@ -100,9 +106,10 @@ export async function getSalesReport(storeId: string, from: string, to: string):
     sql`
       SELECT to_char((o.paid_at::timestamptz AT TIME ZONE 'Asia/Tokyo')::date, 'YYYY-MM-DD') AS day,
         COALESCE(SUM(oi.unit_price * oi.qty), 0) AS revenue,
-        COALESCE(SUM(oi.cost_price_snapshot * oi.qty), 0) AS cost
+        COALESCE(SUM(mi.cost_price * oi.qty), 0) AS cost
       FROM order_items oi
       JOIN orders o ON o.order_id = oi.order_id
+      JOIN menu_items mi ON mi.item_id = oi.item_id
       WHERE o.store_id = ${storeId} AND o.status IN ('paid', 'served')
         AND o.paid_at >= ${fromUtc} AND o.paid_at < ${toUtc}
       GROUP BY day

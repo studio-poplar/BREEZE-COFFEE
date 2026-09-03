@@ -58,7 +58,6 @@ export interface OrderItem {
   item_id: string;
   item_name_snapshot: string;
   unit_price: number;
-  cost_price_snapshot: number;
   qty: number;
   selected_options: SelectedOption[];
 }

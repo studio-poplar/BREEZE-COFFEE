@@ -100,12 +100,14 @@ CREATE TABLE IF NOT EXISTS order_items (
   item_id           TEXT NOT NULL REFERENCES menu_items(item_id),
   item_name_snapshot TEXT NOT NULL,
   unit_price        INTEGER NOT NULL,
-  cost_price_snapshot INTEGER NOT NULL DEFAULT 0, -- menu_items.cost_price at order time, so later cost edits don't rewrite past reports
   qty               INTEGER NOT NULL,
   selected_options  TEXT NOT NULL DEFAULT '[]' -- JSON: [{groupLabel, choiceLabel, extraPrice}]
 );
 
-ALTER TABLE order_items ADD COLUMN IF NOT EXISTS cost_price_snapshot INTEGER NOT NULL DEFAULT 0;
+-- cost for profitability reports is looked up live from menu_items.cost_price
+-- (see src/lib/data/sales.ts) rather than frozen per order, so a per-line
+-- snapshot column isn't needed; drop it if an earlier migration added one.
+ALTER TABLE order_items DROP COLUMN IF EXISTS cost_price_snapshot;
 
 CREATE TABLE IF NOT EXISTS serve_records (
   order_item_id   TEXT PRIMARY KEY REFERENCES order_items(order_item_id) ON DELETE CASCADE,
