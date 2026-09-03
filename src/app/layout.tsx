@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GROOVE COFFEE",
+  title: "Breeze Coffee",
   description: "個人経営・小規模カフェ向けスマート注文アプリ",
 };
 

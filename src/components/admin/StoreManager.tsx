@@ -57,7 +57,7 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="mb-3 w-full rounded-lg border border-zinc-300 px-3 py-2"
-          placeholder="例）GROOVE COFFEE 渋谷ポップアップ"
+          placeholder="例）Breeze Coffee 渋谷ポップアップ"
         />
         <label className="mb-1 block text-xs text-zinc-500">タイプ</label>
         <select

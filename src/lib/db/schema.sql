@@ -1,4 +1,4 @@
--- GROOVE COFFEE schema (PostgreSQL / Neon via Vercel Postgres)
+-- Breeze Coffee schema (PostgreSQL / Neon via Vercel Postgres)
 --
 -- IDs are generated application-side (crypto.randomUUID()), and every
 -- timestamp is written explicitly from JS as an ISO 8601 string rather than

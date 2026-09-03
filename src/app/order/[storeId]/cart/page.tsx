@@ -36,7 +36,7 @@ export default function CartPage({ params }: { params: Promise<{ storeId: string
       const summary = order.items
         .map((i) => `・${i.item_name_snapshot} x${i.qty}`)
         .join("\n");
-      await recordOrderMessage(`GROOVE COFFEE で注文しました\n${summary}\n合計 ¥${order.total_price.toLocaleString()}`);
+      await recordOrderMessage(`Breeze Coffee で注文しました\n${summary}\n合計 ¥${order.total_price.toLocaleString()}`);
       clear();
       router.push(`/order/${storeId}/ticket/${order.order_token}`);
     } catch (e) {

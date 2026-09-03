@@ -4,9 +4,9 @@ import { createMenuItem, listMenu } from "../src/lib/data/menu";
 import { createStaff, findStaffByUsername } from "../src/lib/data/staff";
 
 async function main() {
-  let store = (await listStores()).find((s) => s.name === "GROOVE COFFEE 本店");
+  let store = (await listStores()).find((s) => s.name === "Breeze Coffee 本店");
   if (!store) {
-    store = await createStore({ name: "GROOVE COFFEE 本店", type: "permanent" });
+    store = await createStore({ name: "Breeze Coffee 本店", type: "permanent" });
     console.log(`store created: ${store.name} (${store.store_id})`);
   }
 

@@ -11,7 +11,7 @@ export default async function Home() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-8 px-6 py-12">
       <header className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight">GROOVE COFFEE</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Breeze Coffee</h1>
         <p className="mt-1 text-sm text-zinc-500">スマート注文アプリ (開発用トップページ)</p>
       </header>
 
