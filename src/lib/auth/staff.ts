@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { isStaffActive } from "@/lib/data/staff";
 import type { StaffRole } from "@/lib/types";
 
 const COOKIE_NAME = "groove_staff_session";
@@ -45,8 +46,14 @@ export async function getStaffSession(): Promise<StaffSession | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
+    const staffId = payload.staffId as string;
+    // The JWT itself stays valid for its full TTL regardless of DB state, so
+    // a deactivated account (e.g. an offboarded staff member) would otherwise
+    // keep working until the session naturally expires — checking here closes
+    // that gap on the very next request instead of waiting it out.
+    if (!(await isStaffActive(staffId))) return null;
     return {
-      staffId: payload.staffId as string,
+      staffId,
       username: payload.username as string,
       displayName: payload.displayName as string,
       role: payload.role as StaffRole,

@@ -2,7 +2,7 @@ import { NeonDbError } from "@neondatabase/serverless";
 import { sql } from "@/lib/db";
 import { newId, newOrderToken } from "@/lib/ids";
 import { getMenuItems } from "@/lib/data/menu";
-import type { Order, OrderItem, SelectedOption, OrderStatus, PaymentMethod } from "@/lib/types";
+import type { MenuItem, Order, OrderItem, SelectedOption, OrderStatus, PaymentMethod } from "@/lib/types";
 
 export interface CreateOrderLine {
   item_id: string;
@@ -13,6 +13,53 @@ export interface CreateOrderLine {
 
 export class OrderCreateError extends Error {}
 
+interface PreparedLine {
+  order_item_id: string;
+  item_id: string;
+  item_name_snapshot: string;
+  unit_price: number;
+  qty: number;
+  selected_options: SelectedOption[];
+}
+
+/** Re-derives price/options for one line server-side — never trust a client-supplied price. */
+function prepareLine(menuItem: MenuItem, line: CreateOrderLine): PreparedLine {
+  if (!menuItem.active) {
+    throw new OrderCreateError(`注文できない商品が含まれています: ${menuItem.name}`);
+  }
+  if (!Number.isInteger(line.qty) || line.qty < 1) {
+    throw new OrderCreateError("数量が不正です");
+  }
+
+  const selected: SelectedOption[] = [];
+  for (const group of menuItem.option_groups) {
+    const pickedInGroup = group.choices.filter((c) => line.choice_ids.includes(c.choice_id));
+    if (group.required && pickedInGroup.length === 0) {
+      throw new OrderCreateError(`${menuItem.name}: 「${group.label}」を選択してください`);
+    }
+    if (!group.multi_select && pickedInGroup.length > 1) {
+      throw new OrderCreateError(`${menuItem.name}: 「${group.label}」は1つだけ選択できます`);
+    }
+    for (const choice of pickedInGroup) {
+      selected.push({
+        group_label: group.label,
+        choice_label: choice.label,
+        extra_price: choice.extra_price,
+      });
+    }
+  }
+
+  const unitPrice = menuItem.price + selected.reduce((sum, o) => sum + o.extra_price, 0);
+  return {
+    order_item_id: newId(),
+    item_id: menuItem.item_id,
+    item_name_snapshot: menuItem.name,
+    unit_price: unitPrice,
+    qty: line.qty,
+    selected_options: selected,
+  };
+}
+
 function rowToOrder(row: Record<string, unknown>): Omit<Order, "items"> {
   return {
     order_id: row.order_id as string,
@@ -22,6 +69,7 @@ function rowToOrder(row: Record<string, unknown>): Omit<Order, "items"> {
     status: row.status as OrderStatus,
     payment_method: (row.payment_method as PaymentMethod) ?? null,
     total_price: row.total_price as number,
+    received_amount: (row.received_amount as number) ?? null,
     created_at: row.created_at as string,
     paid_at: (row.paid_at as string) ?? null,
     served_at: (row.served_at as string) ?? null,
@@ -53,6 +101,14 @@ export async function getOrderByToken(token: string): Promise<Order | undefined>
   return { ...order, items: await loadItems(order.order_id) };
 }
 
+/** Spam/abuse guard for order creation — see RATE_LIMIT constants in the API route. */
+export async function countRecentOrdersByCustomer(customerId: string, sinceIso: string): Promise<number> {
+  const rows = (await sql`
+    SELECT COUNT(*) AS n FROM orders WHERE customer_id = ${customerId} AND created_at >= ${sinceIso}
+  `) as { n: string }[];
+  return Number(rows[0]?.n ?? 0);
+}
+
 export async function listOrdersForCustomer(customerId: string): Promise<Order[]> {
   const rows = (await sql`
     SELECT * FROM orders WHERE customer_id = ${customerId} ORDER BY created_at DESC
@@ -78,52 +134,16 @@ export async function createOrder(
   const menuById = await getMenuItems(itemIds);
 
   let total = 0;
-  const preparedItems: {
-    order_item_id: string;
-    item_id: string;
-    item_name_snapshot: string;
-    unit_price: number;
-    qty: number;
-    selected_options: SelectedOption[];
-  }[] = [];
+  const preparedItems: PreparedLine[] = [];
 
   for (const line of lines) {
     const menuItem = menuById.get(line.item_id);
-    if (!menuItem || menuItem.store_id !== storeId || !menuItem.active) {
+    if (!menuItem || menuItem.store_id !== storeId) {
       throw new OrderCreateError(`注文できない商品が含まれています: ${line.item_id}`);
     }
-    if (!Number.isInteger(line.qty) || line.qty < 1) {
-      throw new OrderCreateError("数量が不正です");
-    }
-
-    const selected: SelectedOption[] = [];
-    for (const group of menuItem.option_groups) {
-      const pickedInGroup = group.choices.filter((c) => line.choice_ids.includes(c.choice_id));
-      if (group.required && pickedInGroup.length === 0) {
-        throw new OrderCreateError(`${menuItem.name}: 「${group.label}」を選択してください`);
-      }
-      if (!group.multi_select && pickedInGroup.length > 1) {
-        throw new OrderCreateError(`${menuItem.name}: 「${group.label}」は1つだけ選択できます`);
-      }
-      for (const choice of pickedInGroup) {
-        selected.push({
-          group_label: group.label,
-          choice_label: choice.label,
-          extra_price: choice.extra_price,
-        });
-      }
-    }
-
-    const unitPrice = menuItem.price + selected.reduce((sum, o) => sum + o.extra_price, 0);
-    total += unitPrice * line.qty;
-    preparedItems.push({
-      order_item_id: newId(),
-      item_id: menuItem.item_id,
-      item_name_snapshot: menuItem.name,
-      unit_price: unitPrice,
-      qty: line.qty,
-      selected_options: selected,
-    });
+    const prepared = prepareLine(menuItem, line);
+    total += prepared.unit_price * prepared.qty;
+    preparedItems.push(prepared);
   }
 
   const order_id = newId();
@@ -161,16 +181,86 @@ export async function createOrder(
 
 export async function markOrderPaid(
   token: string,
-  paymentMethod: PaymentMethod
+  paymentMethod: PaymentMethod,
+  receivedAmount?: number | null
 ): Promise<Order | undefined> {
   const order = await getOrderByToken(token);
   if (!order) return undefined;
   if (order.status !== "unpaid") return order;
   await sql`
-    UPDATE orders SET status = 'paid', payment_method = ${paymentMethod}, paid_at = ${new Date().toISOString()}
+    UPDATE orders SET status = 'paid', payment_method = ${paymentMethod}, paid_at = ${new Date().toISOString()},
+      received_amount = ${receivedAmount ?? null}
     WHERE order_token = ${token}
   `;
   return getOrderByToken(token);
+}
+
+/**
+ * Register staff editing an order they haven't charged yet (customer adds or
+ * drops an item at the counter). Only allowed while unpaid — once money has
+ * changed hands the order is a fixed accounting record; that needs a refund
+ * flow, not a silent edit, so callers must check status themselves.
+ */
+export async function addOrderItem(
+  order: Order,
+  line: CreateOrderLine
+): Promise<Order> {
+  const menuById = await getMenuItems([line.item_id]);
+  const menuItem = menuById.get(line.item_id);
+  if (!menuItem || menuItem.store_id !== order.store_id) {
+    throw new OrderCreateError("注文できない商品です");
+  }
+  const prepared = prepareLine(menuItem, line);
+
+  await sql.transaction((tx) => [
+    tx`
+      INSERT INTO order_items (order_item_id, order_id, item_id, item_name_snapshot, unit_price, qty, selected_options)
+      VALUES (${prepared.order_item_id}, ${order.order_id}, ${prepared.item_id}, ${prepared.item_name_snapshot},
+        ${prepared.unit_price}, ${prepared.qty}, ${JSON.stringify(prepared.selected_options)})
+    `,
+    tx`
+      UPDATE orders SET total_price = total_price + ${prepared.unit_price * prepared.qty}
+      WHERE order_id = ${order.order_id}
+    `,
+  ]);
+  return (await getOrderByToken(order.order_token))!;
+}
+
+export async function removeOrderItem(order: Order, orderItemId: string): Promise<Order> {
+  const item = order.items.find((i) => i.order_item_id === orderItemId);
+  if (!item) throw new OrderCreateError("対象の商品が見つかりません");
+  if (order.items.length <= 1) {
+    throw new OrderCreateError("最後の商品は削除できません。金額を変更しない場合は会計をキャンセルしてください");
+  }
+
+  await sql.transaction((tx) => [
+    tx`DELETE FROM order_items WHERE order_item_id = ${orderItemId}`,
+    tx`
+      UPDATE orders SET total_price = total_price - ${item.unit_price * item.qty}
+      WHERE order_id = ${order.order_id}
+    `,
+  ]);
+  return (await getOrderByToken(order.order_token))!;
+}
+
+export async function updateOrderItemQty(
+  order: Order,
+  orderItemId: string,
+  qty: number
+): Promise<Order> {
+  const item = order.items.find((i) => i.order_item_id === orderItemId);
+  if (!item) throw new OrderCreateError("対象の商品が見つかりません");
+  if (!Number.isInteger(qty) || qty < 1) throw new OrderCreateError("数量が不正です");
+  if (qty === item.qty) return order;
+
+  await sql.transaction((tx) => [
+    tx`UPDATE order_items SET qty = ${qty} WHERE order_item_id = ${orderItemId}`,
+    tx`
+      UPDATE orders SET total_price = total_price + ${item.unit_price * (qty - item.qty)}
+      WHERE order_id = ${order.order_id}
+    `,
+  ]);
+  return (await getOrderByToken(order.order_token))!;
 }
 
 export interface ServeInput {

@@ -11,9 +11,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const staff = await verifyStaffPassword(parsed.data.username, parsed.data.password);
-  if (!staff) return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+  const result = await verifyStaffPassword(parsed.data.username, parsed.data.password);
+  if (result.status === "locked") {
+    return NextResponse.json(
+      { error: "locked", retry_after_minutes: result.retryAfterMinutes },
+      { status: 429 }
+    );
+  }
+  if (result.status === "invalid") {
+    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+  }
 
+  const { staff } = result;
   await createStaffSession({
     staffId: staff.staff_id,
     username: staff.username,

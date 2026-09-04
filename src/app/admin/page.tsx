@@ -24,9 +24,14 @@ export default async function AdminPage() {
       <div className="mx-auto max-w-md px-4 py-6">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-bold">店舗一覧</h1>
-          <Link href="/admin/stores" className="text-sm text-zinc-500 underline">
-            店舗を管理
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/admin/staff" className="text-sm text-zinc-500 underline">
+              スタッフ管理
+            </Link>
+            <Link href="/admin/stores" className="text-sm text-zinc-500 underline">
+              店舗を管理
+            </Link>
+          </div>
         </div>
         <ul className="flex flex-col gap-2">
           {stores.map((s) => (

@@ -74,9 +74,18 @@ export function TicketView({ storeId, initialOrder }: { storeId: string; initial
 
       <p className="mt-6 text-xs text-zinc-400">レジでこのQRコードを提示してください</p>
 
+      {order.status !== "unpaid" && (
+        <Link
+          href={`/order/${storeId}/receipt/${order.order_token}`}
+          className="mt-6 w-full rounded-full border border-zinc-300 py-2.5 text-sm font-medium text-zinc-600"
+        >
+          レシートを見る
+        </Link>
+      )}
+
       <Link
         href={`/order/${storeId}`}
-        className="mt-8 w-full rounded-full border border-zinc-900 py-3 font-medium"
+        className="mt-3 w-full rounded-full border border-zinc-900 py-3 font-medium"
       >
         もう一度注文する
       </Link>

@@ -44,7 +44,9 @@ export default function CartPage({ params }: { params: Promise<{ storeId: string
       setError(
         message === "unauthenticated"
           ? "ログインの有効期限が切れました。画面を再読み込みしてからもう一度お試しください。"
-          : message || "注文に失敗しました"
+          : message === "too_many_orders"
+            ? "短時間に注文が集中しています。しばらくしてからもう一度お試しください。"
+            : message || "注文に失敗しました"
       );
     } finally {
       setSubmitting(false);

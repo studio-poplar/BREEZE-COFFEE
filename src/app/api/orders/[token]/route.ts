@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireStaff } from "@/lib/auth/staff";
-import { getOrderByToken, markOrderPaid, markOrderServed } from "@/lib/data/orders";
+import {
+  addOrderItem,
+  getOrderByToken,
+  markOrderPaid,
+  markOrderServed,
+  OrderCreateError,
+  removeOrderItem,
+  updateOrderItemQty,
+} from "@/lib/data/orders";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
@@ -13,6 +21,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
 const payBody = z.object({
   action: z.literal("pay"),
   payment_method: z.enum(["cash", "card", "emoney", "qr"]),
+  received_amount: z.number().int().min(0).optional(),
 });
 
 const serveBody = z.object({
@@ -33,7 +42,25 @@ const serveBody = z.object({
   ),
 });
 
-const patchBody = z.union([payBody, serveBody]);
+const addItemBody = z.object({
+  action: z.literal("add_item"),
+  item_id: z.string().min(1),
+  qty: z.number().int().min(1).max(20),
+  choice_ids: z.array(z.string()).default([]),
+});
+
+const removeItemBody = z.object({
+  action: z.literal("remove_item"),
+  order_item_id: z.string().min(1),
+});
+
+const updateQtyBody = z.object({
+  action: z.literal("update_qty"),
+  order_item_id: z.string().min(1),
+  qty: z.number().int().min(1).max(20),
+});
+
+const patchBody = z.union([payBody, serveBody, addItemBody, removeItemBody, updateQtyBody]);
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const staff = await requireStaff("register");
@@ -55,8 +82,36 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ token: string
     if (existing.status !== "unpaid") {
       return NextResponse.json({ error: "already_paid" }, { status: 409 });
     }
-    const order = await markOrderPaid(token, parsed.data.payment_method);
+    const order = await markOrderPaid(token, parsed.data.payment_method, parsed.data.received_amount ?? null);
     return NextResponse.json({ order });
+  }
+
+  if (
+    parsed.data.action === "add_item" ||
+    parsed.data.action === "remove_item" ||
+    parsed.data.action === "update_qty"
+  ) {
+    if (existing.status !== "unpaid") {
+      return NextResponse.json({ error: "already_paid" }, { status: 409 });
+    }
+    try {
+      const order =
+        parsed.data.action === "add_item"
+          ? await addOrderItem(existing, {
+              item_id: parsed.data.item_id,
+              qty: parsed.data.qty,
+              choice_ids: parsed.data.choice_ids,
+            })
+          : parsed.data.action === "remove_item"
+            ? await removeOrderItem(existing, parsed.data.order_item_id)
+            : await updateOrderItemQty(existing, parsed.data.order_item_id, parsed.data.qty);
+      return NextResponse.json({ order });
+    } catch (err) {
+      if (err instanceof OrderCreateError) {
+        return NextResponse.json({ error: err.message }, { status: 422 });
+      }
+      throw err;
+    }
   }
 
   if (existing.status !== "paid") {

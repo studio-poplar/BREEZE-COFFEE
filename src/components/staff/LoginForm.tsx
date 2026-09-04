@@ -21,6 +21,12 @@ export function StaffLoginForm({ title }: { title: string }) {
     });
     setBusy(false);
     if (!res.ok) {
+      if (res.status === 429) {
+        const data = await res.json().catch(() => null);
+        const minutes = data?.retry_after_minutes ?? 15;
+        setError(`ログイン試行回数が多すぎます。${minutes}分後に再度お試しください`);
+        return;
+      }
       setError("ユーザー名またはパスワードが違います");
       return;
     }

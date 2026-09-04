@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticateCustomer } from "@/lib/auth/customer";
-import { createOrder, OrderCreateError, listOrdersForCustomer } from "@/lib/data/orders";
+import {
+  countRecentOrdersByCustomer,
+  createOrder,
+  OrderCreateError,
+  listOrdersForCustomer,
+} from "@/lib/data/orders";
 
 const bodySchema = z.object({
   store_id: z.string().min(1),
@@ -16,6 +21,12 @@ const bodySchema = z.object({
     .min(1),
 });
 
+// A real customer might place a couple of quick follow-up orders (forgot an
+// item, ordering for a friend too), but this many in this short a window is
+// a spam/abuse pattern, not normal cafe use.
+const RATE_LIMIT_MAX_ORDERS = 5;
+const RATE_LIMIT_WINDOW_MINUTES = 10;
+
 export async function POST(req: Request) {
   const customer = await authenticateCustomer(req);
   if (!customer) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -23,6 +34,15 @@ export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60000).toISOString();
+  const recentCount = await countRecentOrdersByCustomer(customer.customer_id, windowStart);
+  if (recentCount >= RATE_LIMIT_MAX_ORDERS) {
+    return NextResponse.json(
+      { error: "too_many_orders", retry_after_minutes: RATE_LIMIT_WINDOW_MINUTES },
+      { status: 429 }
+    );
   }
 
   try {

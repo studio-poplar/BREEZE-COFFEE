@@ -9,6 +9,9 @@ const bodySchema = z.object({
   starts_at: z.string().nullable().optional(),
   ends_at: z.string().nullable().optional(),
   active: z.boolean().optional(),
+  address: z.string().max(200).nullable().optional(),
+  phone: z.string().max(40).nullable().optional(),
+  invoice_reg_no: z.string().max(20).nullable().optional(),
 });
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ storeId: string }> }) {

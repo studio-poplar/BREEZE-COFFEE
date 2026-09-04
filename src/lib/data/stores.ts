@@ -31,16 +31,28 @@ export async function createStore(input: {
   return (await getStore(store_id))!;
 }
 
+/**
+ * Marks which order the register is currently working, so the customer-facing
+ * display (a separate device polling this store) can mirror it live. Not part
+ * of updateStore since register-role staff need to call it too, not just admin.
+ */
+export async function setActiveOrder(storeId: string, orderToken: string | null): Promise<void> {
+  await sql`UPDATE stores SET active_order_token = ${orderToken} WHERE store_id = ${storeId}`;
+}
+
 export async function updateStore(
   storeId: string,
-  input: Partial<Pick<Store, "name" | "type" | "starts_at" | "ends_at" | "active">>
+  input: Partial<
+    Pick<Store, "name" | "type" | "starts_at" | "ends_at" | "active" | "address" | "phone" | "invoice_reg_no">
+  >
 ): Promise<Store | undefined> {
   const current = await getStore(storeId);
   if (!current) return undefined;
   const next = { ...current, ...input };
   await sql`
     UPDATE stores SET name = ${next.name}, type = ${next.type}, starts_at = ${next.starts_at},
-      ends_at = ${next.ends_at}, active = ${next.active}
+      ends_at = ${next.ends_at}, active = ${next.active}, address = ${next.address},
+      phone = ${next.phone}, invoice_reg_no = ${next.invoice_reg_no}
     WHERE store_id = ${storeId}
   `;
   return getStore(storeId);

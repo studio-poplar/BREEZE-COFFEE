@@ -13,17 +13,33 @@ CREATE TABLE IF NOT EXISTS stores (
   starts_at     TEXT,               -- ISO datetime, popup event start (null for permanent)
   ends_at       TEXT,               -- ISO datetime, popup event end (null for permanent)
   active        BOOLEAN NOT NULL DEFAULT true,
+  address       TEXT,               -- printed on receipts/invoices; optional
+  phone         TEXT,               -- printed on receipts/invoices; optional
+  invoice_reg_no TEXT,              -- インボイス制度の適格請求書発行事業者登録番号 (T+13桁); optional
+  active_order_token TEXT,          -- order currently open on the register, mirrored on the customer-facing display
   created_at    TEXT NOT NULL
 );
 
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS invoice_reg_no TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS active_order_token TEXT;
+
 CREATE TABLE IF NOT EXISTS staff (
-  staff_id      TEXT PRIMARY KEY,
-  username      TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  display_name  TEXT NOT NULL,
-  role          TEXT NOT NULL CHECK (role IN ('admin', 'register')),
-  created_at    TEXT NOT NULL
+  staff_id        TEXT PRIMARY KEY,
+  username        TEXT NOT NULL UNIQUE,
+  password_hash   TEXT NOT NULL,
+  display_name    TEXT NOT NULL,
+  role            TEXT NOT NULL CHECK (role IN ('admin', 'register')),
+  active          BOOLEAN NOT NULL DEFAULT true,  -- deactivated instead of deleted: serve_records.served_by references staff
+  failed_attempts INTEGER NOT NULL DEFAULT 0,     -- login brute-force guard, reset on success
+  locked_until    TEXT,                           -- login blocked until this ISO timestamp once failed_attempts maxes out
+  created_at      TEXT NOT NULL
 );
+
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS failed_attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS locked_until TEXT;
 
 -- which stores a 'register' role staff member may operate; admins can access all stores
 CREATE TABLE IF NOT EXISTS staff_stores (
@@ -82,10 +98,13 @@ CREATE TABLE IF NOT EXISTS orders (
   status          TEXT NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid', 'served')),
   payment_method  TEXT CHECK (payment_method IN ('cash', 'card', 'emoney', 'qr')),
   total_price     INTEGER NOT NULL,
+  received_amount INTEGER,          -- cash tendered; null for non-cash methods (exact amount) or unpaid orders
   created_at      TEXT NOT NULL,
   paid_at         TEXT,
   served_at       TEXT
 );
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS received_amount INTEGER;
 
 -- CREATE TABLE's inline CHECK above only applies to a brand-new table; widen
 -- it on an already-existing one too (added when 電子マネー/QRコード決済

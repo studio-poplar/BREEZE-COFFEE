@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { QrScanner } from "@/components/register/QrScanner";
 import type { Order, PaymentMethod, Store } from "@/lib/types";
 
@@ -17,7 +18,7 @@ const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   qr: "QR決済",
 };
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
 
 type Tab = "unpaid" | "paid" | "served";
 
@@ -88,13 +89,13 @@ export function RegisterScan({ stores }: { stores: Store[] }) {
   function refresh() {
     const currentStoreId = storeIdRef.current;
     if (!currentStoreId) return;
-    fetch(`/api/register/orders?store_id=${currentStoreId}&status=unpaid`)
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=unpaid`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setUnpaid(d.orders ?? []));
-    fetch(`/api/register/orders?store_id=${currentStoreId}&status=paid`)
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=paid`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setAwaitingServe(d.orders ?? []));
-    fetch(`/api/register/orders?store_id=${currentStoreId}&status=served`)
+    fetch(`/api/register/orders?store_id=${currentStoreId}&status=served`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setServed(d.orders ?? []));
   }
@@ -137,6 +138,10 @@ export function RegisterScan({ stores }: { stores: Store[] }) {
 
   return (
     <div className="mx-auto max-w-md px-4 py-6">
+      <Link href="/register/maker" className="mb-4 inline-block text-xs text-zinc-400 underline">
+        メイク画面はこちら →
+      </Link>
+
       {flashMessage && (
         <p className="mb-4 rounded-lg bg-green-50 px-4 py-2.5 text-sm font-medium text-green-600">
           {flashMessage}

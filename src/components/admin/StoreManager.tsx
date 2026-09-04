@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { StoreSettingsForm } from "@/components/admin/StoreSettingsForm";
 import type { Store, StoreType } from "@/lib/types";
 
 export function StoreManager({ initialStores }: { initialStores: Store[] }) {
@@ -12,6 +13,7 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
   const [endsAt, setEndsAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingSettings, setEditingSettings] = useState<Store | null>(null);
 
   async function createStore(e: React.FormEvent) {
     e.preventDefault();
@@ -115,6 +117,9 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
                 <Link href={`/admin/${s.store_id}/menu`} className="text-xs text-zinc-500 underline">
                   メニュー
                 </Link>
+                <button onClick={() => setEditingSettings(s)} className="text-xs text-zinc-500 underline">
+                  領収書設定
+                </button>
                 <button
                   onClick={() => toggleActive(s)}
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -128,6 +133,17 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
           </li>
         ))}
       </ul>
+
+      {editingSettings && (
+        <StoreSettingsForm
+          store={editingSettings}
+          onCancel={() => setEditingSettings(null)}
+          onSaved={(updated) => {
+            setStores((prev) => prev.map((s) => (s.store_id === updated.store_id ? updated : s)));
+            setEditingSettings(null);
+          }}
+        />
+      )}
     </div>
   );
 }

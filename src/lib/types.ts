@@ -7,6 +7,10 @@ export interface Store {
   starts_at: string | null;
   ends_at: string | null;
   active: boolean;
+  address: string | null;
+  phone: string | null;
+  invoice_reg_no: string | null;
+  active_order_token: string | null;
   created_at: string;
 }
 
@@ -70,6 +74,7 @@ export interface Order {
   status: OrderStatus;
   payment_method: PaymentMethod | null;
   total_price: number;
+  received_amount: number | null;
   created_at: string;
   paid_at: string | null;
   served_at: string | null;
@@ -123,6 +128,7 @@ export interface Staff {
   display_name: string;
   role: StaffRole;
   store_ids: string[];
+  active: boolean;
 }
 
 /** Cart line kept client-side only, before an order is created server-side. */
