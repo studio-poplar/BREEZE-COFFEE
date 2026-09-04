@@ -11,7 +11,7 @@
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
-    "@line/liff": "^2.30.0",
+    "@line/liff": "^2.31.0",
     "@neondatabase/serverless": "^1.1.0",
     "@sentry/nextjs": "^10.73.0",
     "@vercel/blob": "^2.8.0",
