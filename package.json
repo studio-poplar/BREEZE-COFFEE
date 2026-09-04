@@ -13,6 +13,7 @@
   "dependencies": {
     "@line/liff": "^2.30.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@sentry/nextjs": "^10.73.0",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.10",
@@ -39,6 +40,7 @@
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "@sentry/cli@2.58.6": true
   }
 }
