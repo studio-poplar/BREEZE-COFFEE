@@ -1,0 +1,371 @@
+<title>Studio Poplar 開発フロー</title>
+<style>
+  :root {
+    --bg: #f7f7f4;
+    --bg-raised: #ffffff;
+    --ink: #1e2321;
+    --ink-soft: #5c645f;
+    --ink-faint: #8b9089;
+    --line: #e1e4de;
+    --line-soft: #eceee8;
+    --accent: #4b6b4e;
+    --accent-ink: #33492f7d;
+    --accent-ink: #2c4128;
+    --accent-soft: #e8ede5;
+    --amber: #a8762f;
+    --amber-soft: #f3e9d8;
+    --chip: #eef0ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #181b19;
+      --bg-raised: #202422;
+      --ink: #e9ece7;
+      --ink-soft: #a2a89f;
+      --ink-faint: #767d73;
+      --line: #333833;
+      --line-soft: #292d29;
+      --accent: #86b18a;
+      --accent-ink: #bcdcbe;
+      --accent-soft: #26302670;
+      --accent-soft: #253027;
+      --amber: #d9a75e;
+      --amber-soft: #362c1a;
+      --chip: #262a26;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #181b19;
+    --bg-raised: #202422;
+    --ink: #e9ece7;
+    --ink-soft: #a2a89f;
+    --ink-faint: #767d73;
+    --line: #333833;
+    --line-soft: #292d29;
+    --accent: #86b18a;
+    --accent-ink: #bcdcbe;
+    --accent-soft: #253027;
+    --amber: #d9a75e;
+    --amber-soft: #362c1a;
+    --chip: #262a26;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
+    line-height: 1.8;
+    font-size: 15px;
+  }
+  h1, h2, h3 { font-family: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif; font-weight: 700; text-wrap: balance; margin: 0; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
+  a { color: var(--accent-ink); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 64px 28px 100px; }
+  @media (max-width: 600px) { .wrap { padding: 44px 18px 80px; } }
+
+  /* ---- header ---- */
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-ink); font-weight: 700; margin-bottom: 18px;
+  }
+  .kicker::before { content: ""; width: 16px; height: 1px; background: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.35; margin-bottom: 14px; }
+  .lede { color: var(--ink-soft); font-size: 15px; max-width: 62ch; margin-bottom: 4px; }
+  .case { font-size: 13px; color: var(--ink-faint); margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .case b { color: var(--ink-soft); font-weight: 700; }
+
+  /* ---- timeline ---- */
+  .timeline { margin-top: 64px; position: relative; }
+  .phase {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 20px;
+    position: relative;
+    padding-bottom: 52px;
+  }
+  .phase:last-child { padding-bottom: 0; }
+  .phase-rail {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .phase-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg-raised); border: 1.5px solid var(--accent);
+    color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Zen Kaku Gothic New", sans-serif; font-weight: 700; font-size: 15px;
+    flex: none;
+  }
+  .phase-line { flex: 1; width: 1px; background: var(--line); margin-top: 8px; }
+  .phase:last-child .phase-line { display: none; }
+
+  .phase-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .phase-en { font-size: 11px; letter-spacing: 0.08em; color: var(--ink-faint); text-transform: uppercase; }
+  .phase h2 { font-size: 19px; }
+  .phase-summary { color: var(--ink-soft); font-size: 14px; margin: 10px 0 16px; max-width: 60ch; }
+
+  .fact-box {
+    background: var(--bg-raised); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 12px; font-size: 13.5px; color: var(--ink-soft);
+  }
+  .fact-box .fact-label {
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    font-weight: 700; margin-bottom: 6px; display: block;
+  }
+  .fact-box.lesson { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 28%, transparent); }
+  .fact-box.lesson .fact-label { color: var(--accent-ink); }
+  .fact-box.lesson p { color: var(--ink); margin: 0; }
+  .fact-box p { margin: 0; }
+  .fact-box ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag {
+    font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+    background: var(--chip); color: var(--ink-soft); font-family: "JetBrains Mono", monospace;
+  }
+
+  /* ---- checklist section ---- */
+  .checklist-section { margin-top: 76px; padding-top: 44px; border-top: 1px solid var(--line); }
+  .checklist-section > .kicker { margin-bottom: 14px; }
+  .checklist-section > h2 { font-size: 23px; margin-bottom: 8px; }
+  .checklist-section > .lede { margin-bottom: 32px; }
+
+  .check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .check-card { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 20px; }
+  .check-card h3 { font-size: 13.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .check-card h3 .n { font-family: "JetBrains Mono", monospace; color: var(--accent-ink); font-size: 12px; }
+  .check-card ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 6px; }
+
+  /* ---- stack defaults ---- */
+  .stack-section { margin-top: 60px; }
+  .stack-table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .stack-table th { text-align: left; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); padding: 12px 16px; background: var(--line-soft); border-bottom: 1px solid var(--line); }
+  .stack-table td { padding: 13px 16px; border-bottom: 1px solid var(--line-soft); color: var(--ink-soft); vertical-align: top; }
+  .stack-table tr:last-child td { border-bottom: none; }
+  .stack-table td:first-child { color: var(--ink); font-weight: 700; white-space: nowrap; }
+  .tbl-wrap { overflow-x: auto; }
+
+  /* ---- closing principles ---- */
+  .principles { margin-top: 60px; }
+  .principles ol { list-style: none; margin: 0; padding: 0; counter-reset: p; display: flex; flex-direction: column; gap: 18px; }
+  .principles li { counter-increment: p; display: grid; grid-template-columns: 30px 1fr; gap: 14px; }
+  .principles li::before {
+    content: counter(p, decimal-leading-zero);
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent-ink); padding-top: 2px;
+  }
+  .principles strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .principles span { font-size: 13.5px; color: var(--ink-soft); }
+</style>
+
+<div class="wrap">
+  <div class="kicker">Studio Poplar / Internal Playbook</div>
+  <h1>案件を横展開するための開発フロー</h1>
+  <p class="lede">
+    Breeze Coffee(飲食店向けPOS・注文システム)の開発で実際に踏んだ6つの工程を、業種を問わず使える型として整理しました。
+    次に別業種の案件に入るときは、まずこのページの「フロー」と「チェックリスト」から当てはめてください。
+  </p>
+  <div class="case">
+    <b>元になった案件</b>: Breeze Coffee(旧 GROOVE COFFEE)— 個人カフェ向けスマート注文アプリ。
+    客注文(LINE)・レジ・管理画面の3面構成、Next.js / Vercel / Neon(Postgres)構成で構築・本番運用中。
+  </div>
+
+  <div class="timeline">
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">1</div><div class="phase-line"></div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">Intake</span><h2>要件の受け取りと欠落情報の判断</h2></div>
+        <p class="phase-summary">
+          引き継ぎ資料はあったが、参照されていたはずのプロトタイプファイルは実在しなかった。技術選定も
+          委任されていたため、止まらずに判断して進めた。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>「そこからあなたに任せます」で権限委譲を受け、DB・認証方式などのスタック選定を独自判断。判断根拠を後から追えるよう、決定理由をメモに残しながら進めた。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>資料の不備は着手を止める理由にならない。「不明点は一任された」とみなせる範囲を見極め、仕様書のテキストと業種知識から仮決定し、実データで検証しながら軌道修正する。</p>
+        </div>
+        <div class="tags"><span class="tag">要件定義</span><span class="tag">スコープ判断</span></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">2</div><div class="phase-line"></div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">MVP</span><h2>最小構成での構築</h2></div>
+        <p class="phase-summary">
+          ゼロ設定で動くものを先に作り、後から本番グレードのインフラに差し替える二段構え。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>初期はbetter-sqlite3で即席MVPを構築(客注文・レジ・管理の3画面を1つのNext.jsアプリに統合)。後日Postgres(Neon)へ移行。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>初手から本番インフラを揃えようとしない。ローカルで完結する構成で業務フロー・画面遷移・権限設計を先に固め、確定してからクラウドインフラに載せ替える方が手戻りが少ない。</p>
+        </div>
+        <div class="tags"><span class="tag">SQLite→Postgres</span><span class="tag">3画面統合設計</span></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">3</div><div class="phase-line"></div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">Go-live</span><h2>本番インフラ移行と実データ検証</h2></div>
+        <p class="phase-summary">
+          「動くはず」で終わらせず、実際のブラウザ操作・実データで一連の業務フローを流して初めて見えるバグを潰す。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>Postgres・画像ストレージ(Vercel Blob)・LINEログイン(LIFF)を本番接続。実ブラウザで注文→会計→提供の一連を流して初めて、マイグレーションスクリプトの不具合やキャッシュ起因の404など、コードレビューだけでは見つからない不具合を発見・修正。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>本番接続が終わった時点をゴールにしない。実データを使って業務フローを最初から最後まで一度通しで動かす工程を必ず設ける。ここで見つかるバグは、コード上は正しく見えるからこそ危険度が高い。</p>
+        </div>
+        <div class="tags"><span class="tag">実機検証</span><span class="tag">マイグレーション</span><span class="tag">画像ストレージ移行</span></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">4</div><div class="phase-line"></div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">Feedback loop</span><h2>実運用フィードバックからの反復改善</h2></div>
+        <p class="phase-summary">
+          利用者からの不具合報告は、1回目の修正で解決しないことがある。表面的な対症療法で止めず、再現するまで原因を追う。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>「会計時にログインエラー」という実際の利用者報告に対し、1回目の修正(トークンの再取得)は不十分で再発。2回目で本質的原因(有効期限が切れると再取得しても変わらない種類のトークンを使っていたこと)を特定し解消。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>「直したはず」で終わらせず、利用者の実環境で再発しないかまで確認を取る。1回で直らない前提で、次の一手(根本原因の仮説)を用意しておく。</p>
+        </div>
+        <div class="tags"><span class="tag">利用者フィードバック</span><span class="tag">根本原因分析</span></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">5</div><div class="phase-line"></div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">Business change</span><h2>事業側の意思決定への追従</h2></div>
+        <p class="phase-summary">
+          店名変更・店舗オペレーション体制の変更など、事業判断は技術構成に直結する。両方の言葉で会話できることが前提になる。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>屋号変更(GROOVE COFFEE → Breeze Coffee)をコード・データベース・外部インフラ(ホスティング・リポジトリ・LINE連携設定)の3層に分けて整理。また「レジ・メイク・客用ディスプレイ」という実店舗の3人体制に合わせて画面自体を分割・新設。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>ブランド変更は「表示文言」だけでなく「外部サービス側の名称」まで含めて棚卸しする。オペレーション体制(何人でどう役割分担するか)を先にヒアリングし、それに画面設計を合わせる。逆に画面ありきで体制を決めさせない。</p>
+        </div>
+        <div class="tags"><span class="tag">リブランド</span><span class="tag">店舗オペレーション設計</span></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-rail"><div class="phase-num">6</div></div>
+      <div>
+        <div class="phase-head"><span class="phase-en">Hardening</span><h2>セキュリティ・運用体制の整備</h2></div>
+        <p class="phase-summary">
+          「動くもの」ができた後こそが本番。ここまでやって初めて安心して運用を任せられる。
+        </p>
+        <div class="fact-box">
+          <span class="fact-label">実際に起きたこと</span>
+          <p>スタッフ管理画面・ログイン総当たり対策・注文スパム対策を実装。本番環境変数の監査では、認証用の署名鍵が実は設定されておらず、既定値で動いてしまっていたという重大な問題を発見・即修正。エラー監視・稼働監視も外部サービスと連携し、運用マニュアルを整備して引き渡した。</p>
+        </div>
+        <div class="fact-box lesson">
+          <span class="fact-label">横展開できる型</span>
+          <p>「動いている」と「安全に運用できる」は別の到達点。納品前に必ず環境変数・認証まわりを一つずつ実地監査する工程を設ける。ここでしか見つからない致命的な穴がある。</p>
+        </div>
+        <div class="tags"><span class="tag">認証監査</span><span class="tag">レート制限</span><span class="tag">監視体制</span><span class="tag">運用文書化</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= checklist ================= -->
+  <div class="checklist-section">
+    <div class="kicker">Reusable Checklist</div>
+    <h2>次の案件で最初に当てはめるチェックリスト</h2>
+    <p class="lede">業種が変わっても、確認する「型」は同じです。案件のキックオフ時にこの4カテゴリで棚卸しします。</p>
+
+    <div class="check-grid">
+      <div class="check-card">
+        <h3><span class="n">01</span>要件の輪郭</h3>
+        <ul>
+          <li>資料の欠落は何で、誰が判断代行するか</li>
+          <li>登場する「役割」は何人・何種類か(客/店舗側スタッフの職種分け)</li>
+          <li>お金が動く箇所はどこか(会計・返金・売上集計)</li>
+        </ul>
+      </div>
+      <div class="check-card">
+        <h3><span class="n">02</span>データモデルの曖昧さ</h3>
+        <ul>
+          <li>「同じもの」をどう同一視するか(例: 店舗をまたぐ商品名の一致)</li>
+          <li>削除 or 無効化、どちらの設計にするか(履歴データとの整合性)</li>
+          <li>金額・税率の丸め方針を先に決める</li>
+        </ul>
+      </div>
+      <div class="check-card">
+        <h3><span class="n">03</span>マルチデバイス運用</h3>
+        <ul>
+          <li>同時に開く端末は何台・何役割か</li>
+          <li>端末間のリアルタイム同期がどこまで必要か</li>
+          <li>画面スリープ・ネットワーク断への耐性</li>
+        </ul>
+      </div>
+      <div class="check-card">
+        <h3><span class="n">04</span>納品前の監査</h3>
+        <ul>
+          <li>本番の環境変数・署名鍵が既定値のまま残っていないか</li>
+          <li>ログイン試行・スパムへのレート制限があるか</li>
+          <li>エラー監視・稼働監視・バックアップ方針・運用文書が揃っているか</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= stack defaults ================= -->
+  <div class="stack-section">
+    <div class="kicker">Default Stack</div>
+    <h2 style="font-size:23px; margin-bottom: 8px;">小規模事業者向けアプリの初期スタック</h2>
+    <p class="lede" style="margin-bottom: 24px;">Breeze Coffeeで有効だった構成。業種が変わっても、この組み合わせを初期値として検討する。</p>
+    <div class="tbl-wrap">
+      <table class="stack-table">
+        <tr><th>領域</th><th>採用</th><th>選定理由</th></tr>
+        <tr><td>フレームワーク</td><td class="mono">Next.js (App Router)</td><td>客・スタッフ・管理者、複数の面を1リポジトリで運用しやすい</td></tr>
+        <tr><td>ホスティング</td><td class="mono">Vercel</td><td>デプロイ・ドメイン・環境変数管理が一体化、個人開発規模に適正コスト</td></tr>
+        <tr><td>データベース</td><td class="mono">Neon (Postgres)</td><td>サーバーレスHTTP接続、Vercel連携が標準サポート</td></tr>
+        <tr><td>画像ストレージ</td><td class="mono">Vercel Blob</td><td>アップロード機能に追加インフラなしで対応可</td></tr>
+        <tr><td>認証(スタッフ)</td><td class="mono">JWT + bcrypt</td><td>外部IDP不要、役割ベースの権限制御を自前実装</td></tr>
+        <tr><td>認証(利用者)</td><td class="mono">業種の主要チャネルのSDK</td><td>今回はLINE LIFF。業種によりLINE/メール認証などに差し替え</td></tr>
+        <tr><td>エラー監視</td><td class="mono">Sentry</td><td>無料枠で十分、本番のみ有効化してノイズを避ける</td></tr>
+        <tr><td>稼働監視</td><td class="mono">UptimeRobot</td><td>DB疎通まで見るヘルスチェックエンドポイントを別途用意</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= principles ================= -->
+  <div class="principles">
+    <div class="kicker">Takeaways</div>
+    <h2 style="font-size:23px; margin-bottom: 24px;">業種を問わず効いた判断軸</h2>
+    <ol>
+      <li><strong>止まるより仮決定する。</strong><span>資料や仕様の欠落は、確認の往復より「仮決定して実データで検証」の方が早く正確に収束することが多かった。</span></li>
+      <li><strong>「動いた」の基準を実データ・実操作に置く。</strong><span>コードが正しく見えることと、実際の業務フローで壊れないことは別。本番相当データでの通し確認を工程として独立させる。</span></li>
+      <li><strong>1回目の修正を疑う。</strong><span>利用者報告の不具合は、表面的な対症療法では再発することがある。直った「はず」ではなく、直った「こと」を実環境で確認する。</span></li>
+      <li><strong>事業判断と技術構成を切り離さない。</strong><span>店名変更やオペレーション体制の変更は、思っている以上に広い範囲(外部サービス名・画面構成・権限設計)に波及する。</span></li>
+      <li><strong>納品のゴールを「動く」から「安全に運用できる」に引き上げる。</strong><span>環境変数の監査だけで重大な脆弱性が見つかることがある。この工程を省略しない。</span></li>
+    </ol>
+  </div>
+</div>
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">

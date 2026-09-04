@@ -1,0 +1,332 @@
+<title>Studio Poplar 開発指示書</title>
+<style>
+  :root {
+    --bg: #f7f7f4;
+    --bg-raised: #ffffff;
+    --ink: #1e2321;
+    --ink-soft: #5c645f;
+    --ink-faint: #8b9089;
+    --line: #e1e4de;
+    --line-soft: #eceee8;
+    --accent: #4b6b4e;
+    --accent-ink: #2c4128;
+    --accent-soft: #e8ede5;
+    --amber: #a8762f;
+    --amber-soft: #f3e9d8;
+    --chip: #eef0ea;
+    --done: #4b6b4e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #181b19;
+      --bg-raised: #202422;
+      --ink: #e9ece7;
+      --ink-soft: #a2a89f;
+      --ink-faint: #767d73;
+      --line: #333833;
+      --line-soft: #292d29;
+      --accent: #86b18a;
+      --accent-ink: #bcdcbe;
+      --accent-soft: #253027;
+      --amber: #d9a75e;
+      --amber-soft: #362c1a;
+      --chip: #262a26;
+      --done: #86b18a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #181b19;
+    --bg-raised: #202422;
+    --ink: #e9ece7;
+    --ink-soft: #a2a89f;
+    --ink-faint: #767d73;
+    --line: #333833;
+    --line-soft: #292d29;
+    --accent: #86b18a;
+    --accent-ink: #bcdcbe;
+    --accent-soft: #253027;
+    --amber: #d9a75e;
+    --amber-soft: #362c1a;
+    --chip: #262a26;
+    --done: #86b18a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
+    line-height: 1.75;
+    font-size: 15px;
+  }
+  h1, h2, h3 { font-family: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif; font-weight: 700; text-wrap: balance; margin: 0; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; }
+  a { color: var(--accent-ink); }
+
+  .shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); max-width: 1140px; margin: 0 auto; }
+  @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } }
+
+  .sidebar {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 16px 28px 26px; border-right: 1px solid var(--line);
+  }
+  @media (max-width: 860px) {
+    .sidebar { position: static; height: auto; display: flex; gap: 6px; overflow-x: auto; padding: 14px 16px; border-right: none; border-bottom: 1px solid var(--line); }
+  }
+  .brand { font-family: "Zen Kaku Gothic New", sans-serif; font-size: 13.5px; font-weight: 700; margin-bottom: 2px; }
+  .brand-sub { font-size: 11px; color: var(--ink-faint); margin-bottom: 22px; letter-spacing: 0.04em; }
+  @media (max-width: 860px) { .brand, .brand-sub { display: none; } }
+  .nav-link {
+    display: block; padding: 6px 10px; border-radius: 7px; font-size: 12.5px;
+    color: var(--ink-soft); text-decoration: none; margin-bottom: 1px;
+  }
+  .nav-link .nn { font-family: "JetBrains Mono", monospace; color: var(--ink-faint); margin-right: 6px; font-size: 11px; }
+  .nav-link:hover { background: var(--line-soft); color: var(--ink); }
+  @media (max-width: 860px) { .nav-link { flex: none; border: 1px solid var(--line); background: var(--bg-raised); } }
+
+  .content { padding: 56px 32px 110px; min-width: 0; }
+  @media (max-width: 860px) { .content { padding: 30px 18px 80px; } }
+
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink); font-weight: 700; margin-bottom: 16px; }
+  .kicker::before { content: ""; width: 16px; height: 1px; background: var(--accent); }
+  h1 { font-size: 28px; margin-bottom: 12px; }
+  .lede { color: var(--ink-soft); max-width: 64ch; font-size: 14.5px; margin-bottom: 24px; }
+
+  .howto {
+    background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius: 12px; padding: 16px 18px; font-size: 13.5px; color: var(--ink); margin-bottom: 36px;
+  }
+  .howto b { color: var(--accent-ink); }
+
+  /* ---- changelog ---- */
+  .changelog {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised);
+    padding: 4px 20px; margin-bottom: 52px;
+  }
+  .changelog-row { display: grid; grid-template-columns: 90px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+  .changelog-row:last-child { border-bottom: none; }
+  .changelog-row .ver { font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--accent-ink); }
+  .changelog-row .date { display: block; font-size: 11px; color: var(--ink-faint); font-weight: 400; margin-top: 2px; }
+  .changelog-row .note { color: var(--ink-soft); }
+  .changelog-row .note b { color: var(--ink); font-weight: 600; }
+
+  /* ---- fill-in project header ---- */
+  .fillcard {
+    border: 1.5px dashed color-mix(in srgb, var(--ink-faint) 55%, transparent);
+    border-radius: 12px; padding: 20px 22px; margin-bottom: 56px; background: var(--bg-raised);
+  }
+  .fillcard .fillcard-label { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; margin-bottom: 12px; }
+  .fill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px; }
+  .fill-field label { display: block; font-size: 11.5px; color: var(--ink-faint); margin-bottom: 4px; }
+  .fill-field .blank { border-bottom: 1px solid var(--line); height: 22px; }
+
+  /* ---- stage sections ---- */
+  .stage { margin-bottom: 56px; scroll-margin-top: 20px; }
+  .stage-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .stage-num {
+    font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--accent-ink);
+    background: var(--accent-soft); border-radius: 6px; padding: 2px 8px; font-weight: 700;
+  }
+  .stage h2 { font-size: 19px; }
+  .stage-desc { color: var(--ink-soft); font-size: 13.5px; margin: 8px 0 18px; max-width: 66ch; }
+
+  .check-list { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised); overflow: hidden; }
+  .check-item {
+    display: grid; grid-template-columns: 20px 1fr; gap: 12px;
+    padding: 13px 18px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; color: var(--ink);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .box {
+    width: 15px; height: 15px; border: 1.5px solid var(--ink-faint); border-radius: 4px; margin-top: 2px; flex: none;
+  }
+  .check-item .q { display: block; }
+  .check-item .hint { display: block; color: var(--ink-faint); font-size: 12px; margin-top: 3px; }
+  .check-item code { font-family: "JetBrains Mono", monospace; font-size: 12px; background: var(--chip); padding: 1px 6px; border-radius: 4px; }
+
+  .default-note {
+    margin-top: 12px; display: flex; gap: 8px; font-size: 12.5px; color: var(--ink-soft);
+    background: var(--line-soft); border-radius: 8px; padding: 10px 14px;
+  }
+  .default-note b { color: var(--ink); }
+
+  footer.page-footer {
+    max-width: 1140px; margin: 0 auto; padding: 0 32px 60px 248px; color: var(--ink-faint); font-size: 12px;
+  }
+  @media (max-width: 860px) { footer.page-footer { padding: 0 18px 60px; } }
+</style>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="brand">開発指示書</div>
+    <div class="brand-sub">STUDIO POPLAR</div>
+    <a class="nav-link" href="#howto"><span class="nn">—</span>使い方</a>
+    <a class="nav-link" href="#s0"><span class="nn">00</span>プロジェクト概要</a>
+    <a class="nav-link" href="#s1"><span class="nn">01</span>要件定義</a>
+    <a class="nav-link" href="#s2"><span class="nn">02</span>データ設計</a>
+    <a class="nav-link" href="#s3"><span class="nn">03</span>認証・権限</a>
+    <a class="nav-link" href="#s4"><span class="nn">04</span>画面・UI設計</a>
+    <a class="nav-link" href="#s5"><span class="nn">05</span>インフラ・スタック</a>
+    <a class="nav-link" href="#s6"><span class="nn">06</span>決済・外部連携</a>
+    <a class="nav-link" href="#s7"><span class="nn">07</span>セキュリティ</a>
+    <a class="nav-link" href="#s8"><span class="nn">08</span>監視・運用</a>
+    <a class="nav-link" href="#s9"><span class="nn">09</span>ドキュメント・引き継ぎ</a>
+  </nav>
+
+  <div class="content">
+    <div class="kicker">Studio Poplar / Build Specification</div>
+    <h1>アプリ開発 指示書</h1>
+    <p class="lede">
+      設計から運用まで、案件を問わず確認すべき要素を1本の指示書にまとめたものです。新しい案件のキックオフでは
+      まずこの指示書を上から通しで当てはめ、案件固有の判断はそのつど追記していきます。
+    </p>
+
+    <div class="howto" id="howto">
+      <b>この指示書の使い方</b> — 案件のたびに複製せず、この1本を直接アップグレードしていきます。
+      新しい案件で「ここに載っていない論点」や「ここの判断が間違っていた」に気づいたら、該当セクションに
+      チェック項目を追記・修正し、下の変更履歴に1行残してください。次回セッションでこのURLを渡せば、
+      同じ内容で更新できます。
+    </div>
+
+    <div class="changelog">
+      <div class="changelog-row">
+        <div class="ver">v1.0<span class="date">2026-09-04</span></div>
+        <div class="note">初版作成。<b>Breeze Coffee</b>(飲食店向けPOS・注文システム)案件から、設計〜運用の9セクションを抽出。</div>
+      </div>
+    </div>
+
+    <div class="fillcard">
+      <div class="fillcard-label">案件情報(案件ごとに記入)</div>
+      <div class="fill-grid">
+        <div class="fill-field"><label>案件名</label><div class="blank"></div></div>
+        <div class="fill-field"><label>業種</label><div class="blank"></div></div>
+        <div class="fill-field"><label>主要な利用者の役割</label><div class="blank"></div></div>
+        <div class="fill-field"><label>お金が動く箇所</label><div class="blank"></div></div>
+      </div>
+    </div>
+
+    <!-- ============ 01 要件定義 ============ -->
+    <div class="stage" id="s1">
+      <div class="stage-head"><span class="stage-num">01</span><h2>要件定義</h2></div>
+      <p class="stage-desc">着手前に、資料の不足と意思決定の所在をはっきりさせる。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">引き継ぎ資料に「参照されているが存在しないファイル」がないか確認したか</span><span class="hint">プロトタイプ・仕様書内の参照は実在チェックしてから着手する</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">不明点について「誰が・どこまで」判断を代行してよいか合意したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">登場する役割(ロール)を人数・職種単位で洗い出したか</span><span class="hint">例: 客/レジ/メイク/管理者 — 役割数がそのまま画面数・権限設計に直結する</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">お金が動く箇所(会計・返金・売上集計)を特定したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">今回のスコープ外を明文化したか</span><span class="hint">「決めていない」ことも仕様の一部として記録する</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 02 データ設計 ============ -->
+    <div class="stage" id="s2">
+      <div class="stage-head"><span class="stage-num">02</span><h2>データ設計</h2></div>
+      <p class="stage-desc">曖昧になりやすい同一性・削除・金額の丸めを先に決める。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">「同じもの」をどう同一視するか決めたか</span><span class="hint">例: 店舗をまたぐ「いつもの」はIDでなく商品名で一致させた(店舗ごとに別レコードのため)</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">削除 or 無効化(<code>active</code>フラグ)、どちらの設計にするか決めたか</span><span class="hint">履歴テーブルから参照されるレコードは物理削除できないことが多い(FK制約)</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">価格・原価・税額の丸め方針(切り捨て/切り上げ/四捨五入)を決めたか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">「注文時点の金額」を後から変わる可能性のあるマスタ値(原価・単価)から分離するか、常に最新値を参照するかを決めたか</span><span class="hint">レシート等の会計記録は基本スナップショット、粗利分析など「今の視点で見たい」ものは最新値参照</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">IDはアプリ側生成(UUID等)か、DB側自動採番かを決めたか</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 03 認証・権限 ============ -->
+    <div class="stage" id="s3">
+      <div class="stage-head"><span class="stage-num">03</span><h2>認証・権限</h2></div>
+      <p class="stage-desc">利用者側とスタッフ側で別の認証方式になることが多い。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">利用者向け認証チャネルを決めたか</span><span class="hint">LINEログイン(LIFF)/メール/電話番号など、業種の主要接点に合わせる</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">「一度発行したら自動更新されないトークン」と「SDKが自動更新するトークン」を区別して使ったか</span><span class="hint">前者をAPI呼び出しの都度使い回すと、時間が経ってから認証エラーになる</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">スタッフ認証の方式を決めたか</span><span class="hint">既定値: 自前ID/パスワード + JWTセッションCookie(httpOnly, sameSite=lax, secure)</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">ロールと、ロールごとにアクセスできる範囲(店舗単位など)を設計したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">アカウント無効化が「次のリクエストから即座に」効くか確認したか</span><span class="hint">JWTはステートレスなので、DB側のactive状態をリクエストごとに再検証する実装が必要</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 04 画面・UI設計 ============ -->
+    <div class="stage" id="s4">
+      <div class="stage-head"><span class="stage-num">04</span><h2>画面・UI設計</h2></div>
+      <p class="stage-desc">同時に開く端末の台数と役割から、画面分割の単位を決める。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">同時に開く端末は何台・何役割か洗い出したか</span><span class="hint">1人1画面を兼務するのか、役割ごとに専用端末を置くのかで設計が変わる</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">端末間のリアルタイム同期がどこまで必要か決めたか</span><span class="hint">ポーリング間隔の目安: 数秒間隔で体感は十分なことが多い。真の即時性が要る場合のみpush方式を検討</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">画面のスリープ・画面ロックが業務を止めないか確認したか</span><span class="hint">端末側の設定に依存するため、運用マニュアルへの記載が必須</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">操作頻度の高いボタン(会計確定・提供済み等)のタップ領域を十分な大きさにしたか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">確定操作(会計・削除)の後に取り消しづらいことを踏まえた確認導線になっているか</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 05 インフラ・スタック ============ -->
+    <div class="stage" id="s5">
+      <div class="stage-head"><span class="stage-num">05</span><h2>インフラ・技術スタック</h2></div>
+      <p class="stage-desc">小規模事業者向けの既定値。理由があれば個別に上書きする。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">フレームワーク: <code>Next.js (App Router)</code> — 複数の面を1リポジトリで運用</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">ホスティング: <code>Vercel</code> — デプロイ・ドメイン・環境変数が一体化</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">DB: <code>Neon(Postgres)</code> — サーバーレスHTTP接続、Vercel連携が標準</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">画像等ストレージ: <code>Vercel Blob</code></span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">まずローカルで完結する最小構成(SQLite等)で業務フローを固め、後から本番インフラに差し替える二段構えにしたか</span></span></div>
+      </div>
+      <div class="default-note">既定値から外れる判断をした場合は、理由をこの行に追記する運用にしてください。</div>
+    </div>
+
+    <!-- ============ 06 決済・外部連携 ============ -->
+    <div class="stage" id="s6">
+      <div class="stage-head"><span class="stage-num">06</span><h2>決済・外部連携</h2></div>
+      <p class="stage-desc">実際の入金が絡む部分は、記録用と決済実行用を分けて考える。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">決済は「記録するだけ」か「アプリから実際に処理する」かを決めたか</span><span class="hint">後者はStripe/Squareのターミナル連携が必要。前者は支払い方法をボタンで選ばせるだけで済む</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">現金決済がある場合、お預かり金額とおつりの計算を用意したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">領収書・インボイス対応(登録番号・税率内訳)が必要か確認したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">外部SDK連携(LINE等)のコールバックURL・エンドポイントは、ドメイン変更時に追従が必要なことを認識しているか</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 07 セキュリティ ============ -->
+    <div class="stage" id="s7">
+      <div class="stage-head"><span class="stage-num">07</span><h2>セキュリティ</h2></div>
+      <p class="stage-desc">納品直前に必ず一度、実地監査として通す工程。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">本番の環境変数(署名鍵・シークレット)がすべて実際に設定されているか確認したか</span><span class="hint">未設定だとコード内の既定値にフォールバックし、気づかず脆弱な状態で稼働することがある — 必ず一覧を実際に見て確認する</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">初期パスワードを本番投入前に変更したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">ログインへの総当たり対策(規定回数失敗でロック)があるか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">利用者側の操作(注文作成など)に短時間の回数制限があるか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">管理者アカウントが自分自身を無効化できてしまわないか</span><span class="hint">単独管理者体制でのロックアウト防止</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">SQLはパラメータ化されたクエリのみで、文字列結合していないか</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 08 監視・運用 ============ -->
+    <div class="stage" id="s8">
+      <div class="stage-head"><span class="stage-num">08</span><h2>監視・運用</h2></div>
+      <p class="stage-desc">「動く」ことの確認を、人手を介さず継続できる状態にする。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">エラー監視(Sentry等)を導入し、開発環境のノイズを除外したか</span><span class="hint">ローカル開発中のHMR起因エラー等が本番と混ざらないよう、本番環境でのみ有効化する</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">稼働監視(UptimeRobot等)を、DB疎通まで見るヘルスチェックエンドポイントに向けたか</span><span class="hint">トップページの200応答だけではDB障害を検知できない</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">DBのバックアップ・復元方式と保持期間を確認し、許容できるか判断したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">依存パッケージの自動更新チェック(Dependabot等)を設定したか</span></span></div>
+      </div>
+    </div>
+
+    <!-- ============ 09 ドキュメント・引き継ぎ ============ -->
+    <div class="stage" id="s9">
+      <div class="stage-head"><span class="stage-num">09</span><h2>ドキュメント・引き継ぎ</h2></div>
+      <p class="stage-desc">開発者がいなくても、運用側だけで回せる状態を最終ゴールにする。</p>
+      <div class="check-list">
+        <div class="check-item"><div class="box"></div><span><span class="q">全URL・ログイン情報の一覧を渡したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">日常オペレーション(役割ごとの操作手順)を文書化したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">よくある症状 → 原因 → 対処のトラブルシューティング表を渡したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">サイトダウン・データ誤操作時の緊急対応手順を渡したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">使用している外部サービス一覧(用途・アカウント所在)を渡したか</span></span></div>
+        <div class="check-item"><div class="box"></div><span><span class="q">この開発指示書自体に、今回の案件で得た新しい論点を追記したか</span></span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="page-footer">Studio Poplar 内部指示書 — 案件を通すたびに本ページを直接アップグレードしてください。</footer>
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
