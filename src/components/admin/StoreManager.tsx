@@ -53,7 +53,7 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
     <div className="mx-auto max-w-md px-4 py-6">
       <h1 className="mb-4 text-lg font-bold">店舗 / 開催回の管理</h1>
 
-      <form onSubmit={createStore} className="mb-8 rounded-lg border border-zinc-200 p-4">
+      <form onSubmit={createStore} className="mb-8 app-card p-4">
         <label className="mb-1 block text-xs text-zinc-500">店舗名</label>
         <input
           value={name}
@@ -104,7 +104,7 @@ export function StoreManager({ initialStores }: { initialStores: Store[] }) {
 
       <ul className="flex flex-col gap-2">
         {stores.map((s) => (
-          <li key={s.store_id} className="rounded-lg border border-zinc-100 p-3">
+          <li key={s.store_id} className="app-card p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{s.name}</p>

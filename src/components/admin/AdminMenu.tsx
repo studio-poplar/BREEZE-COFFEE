@@ -44,7 +44,7 @@ export function AdminMenu({ storeId, initialItems }: { storeId: string; initialI
         {items.map((item) => (
           <li
             key={item.item_id}
-            className="flex items-center gap-3 rounded-lg border border-zinc-100 p-3"
+            className="flex items-center gap-3 app-card p-3"
           >
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
               {item.image_path && (

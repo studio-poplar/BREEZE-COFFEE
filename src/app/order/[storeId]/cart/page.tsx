@@ -1,6 +1,8 @@
 "use client";
 
 import { use, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/client/cart";
 import { useCustomerAuth } from "@/lib/client/customer-auth";
@@ -54,58 +56,79 @@ export default function CartPage({ params }: { params: Promise<{ storeId: string
   }
 
   if (lines.length === 0) {
-    return <p className="mt-16 text-center text-sm text-zinc-400">カートは空です</p>;
+    return (
+      <div className="mx-auto mt-20 flex max-w-md flex-col items-center px-6 text-center">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-zinc-100 text-zinc-400">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 8h12l-1 12.5H7L6 8z" />
+            <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+          </svg>
+        </span>
+        <p className="mt-4 font-bold">カートは空です</p>
+        <p className="mt-1 text-sm text-zinc-400">メニューから好きなドリンクを選んでみましょう</p>
+        <Link href={`/order/${storeId}`} className="press mt-6 rounded-full bg-zinc-900 px-6 py-3 text-sm font-bold text-white">
+          メニューを見る
+        </Link>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-4">
+    <div className="mx-auto max-w-md px-4 pb-4 pt-5">
+      <h1 className="mb-4 px-1 text-2xl font-bold tracking-tight">カート</h1>
       <ul className="flex flex-col gap-3">
         {lines.map((line) => (
-          <li key={line.key} className="rounded-lg border border-zinc-100 p-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-medium">{line.item_name}</p>
-                {line.selected_labels.length > 0 && (
-                  <p className="text-xs text-zinc-400">
-                    {line.selected_labels.map((o) => o.choice_label).join(" / ")}
-                  </p>
-                )}
-                <p className="mt-1 text-sm text-zinc-600">¥{line.unit_price.toLocaleString()}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => updateQty(line.key, line.qty - 1)}
-                  className="h-7 w-7 rounded-full border border-zinc-300"
-                >
-                  −
-                </button>
-                <span className="w-5 text-center">{line.qty}</span>
-                <button
-                  onClick={() => updateQty(line.key, line.qty + 1)}
-                  className="h-7 w-7 rounded-full border border-zinc-300"
-                >
-                  ＋
-                </button>
-              </div>
+          <li key={line.key} className="app-card rise-in flex items-center gap-3 p-3">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
+              {line.image_path && (
+                <Image src={line.image_path} alt={line.item_name} fill sizes="64px" className="object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{line.item_name}</p>
+              {line.selected_labels.length > 0 && (
+                <p className="truncate text-xs text-zinc-400">
+                  {line.selected_labels.map((o) => o.choice_label).join(" / ")}
+                </p>
+              )}
+              <p className="mt-1 text-sm font-bold tabular-nums">¥{(line.unit_price * line.qty).toLocaleString()}</p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-zinc-100 p-1">
+              <button
+                onClick={() => updateQty(line.key, line.qty - 1)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-white text-base shadow-sm"
+                aria-label="減らす"
+              >
+                −
+              </button>
+              <span className="w-4 text-center text-sm font-bold tabular-nums">{line.qty}</span>
+              <button
+                onClick={() => updateQty(line.key, line.qty + 1)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-white text-base shadow-sm"
+                aria-label="増やす"
+              >
+                ＋
+              </button>
             </div>
           </li>
         ))}
       </ul>
 
-      <div className="mt-6 flex items-center justify-between border-t border-zinc-100 pt-4">
-        <span className="font-medium">合計</span>
-        <span className="text-lg font-bold">¥{total.toLocaleString()}</span>
+      <div className="app-card mt-5 flex items-center justify-between p-4">
+        <span className="text-sm font-medium text-zinc-500">合計（税込）</span>
+        <span className="text-2xl font-bold tabular-nums">¥{total.toLocaleString()}</span>
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
 
       <button
         onClick={submitOrder}
         disabled={submitting}
-        className="mt-4 w-full rounded-full bg-zinc-900 py-3 font-medium text-white disabled:opacity-40"
+        className="mt-4 w-full rounded-full bg-zinc-900 py-4 font-bold text-white shadow-float disabled:opacity-40"
       >
         {submitting ? "注文中..." : "この内容で注文する"}
       </button>
+      <p className="mt-3 text-center text-xs text-zinc-400">お支払いはレジで承ります</p>
     </div>
   );
 }

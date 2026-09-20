@@ -54,115 +54,155 @@ export function ItemCustomizer({ storeId, item }: { storeId: string; item: MenuI
     return { unitPrice: price, selectedOptions: options, choiceIds: ids, missingRequired: missing };
   }, [item, selection]);
 
+  async function saveFavorite() {
+    setSavingFavorite(true);
+    try {
+      const freshToken = await getAuthToken();
+      if (!freshToken) return;
+      const label =
+        selectedOptions.length > 0
+          ? `${item.name} (${selectedOptions.map((o) => o.choice_label).join("/")})`
+          : item.name;
+      await apiFetch("/api/favorites", {
+        method: "POST",
+        token: freshToken,
+        body: JSON.stringify({ item_id: item.item_id, label, selected_options: selectedOptions }),
+      });
+      setFavoriteSaved(true);
+    } finally {
+      setSavingFavorite(false);
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-md px-4 py-4">
-      <div className="relative mb-4 h-48 w-full overflow-hidden rounded-xl bg-zinc-100">
+    <div className="mx-auto max-w-md">
+      <div className="relative aspect-[4/3] w-full bg-zinc-100">
         {item.image_path && (
-          <Image src={item.image_path} alt={item.name} fill className="object-cover" />
+          <Image src={item.image_path} alt={item.name} fill priority sizes="448px" className="object-cover" />
         )}
-      </div>
-      <h1 className="text-xl font-bold">{item.name}</h1>
-      <p className="mt-1 text-lg text-zinc-700">¥{unitPrice.toLocaleString()}</p>
-
-      <div className="mt-6 flex flex-col gap-6">
-        {item.option_groups.map((group) => (
-          <fieldset key={group.group_id}>
-            <legend className="mb-2 text-sm font-semibold">
-              {group.label}
-              {group.required ? (
-                <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-500">必須</span>
-              ) : (
-                <span className="ml-2 text-[10px] text-zinc-400">任意</span>
-              )}
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {group.choices.map((choice) => {
-                const active = (selection[group.group_id] ?? []).includes(choice.choice_id);
-                return (
-                  <button
-                    key={choice.choice_id}
-                    type="button"
-                    onClick={() => toggleChoice(group.group_id, choice.choice_id, !!group.multi_select)}
-                    className={`rounded-full border px-3 py-1.5 text-sm ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-white"
-                        : "border-zinc-300 text-zinc-700"
-                    }`}
-                  >
-                    {choice.label}
-                    {choice.extra_price > 0 && ` (+¥${choice.extra_price})`}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ))}
-      </div>
-
-      <div className="mt-8 flex items-center justify-center gap-4">
         <button
           type="button"
-          onClick={() => setQty((q) => Math.max(1, q - 1))}
-          className="h-9 w-9 rounded-full border border-zinc-300 text-lg"
+          onClick={() => router.back()}
+          aria-label="戻る"
+          className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow-md"
         >
-          −
-        </button>
-        <span className="w-6 text-center font-medium">{qty}</span>
-        <button
-          type="button"
-          onClick={() => setQty((q) => Math.min(20, q + 1))}
-          className="h-9 w-9 rounded-full border border-zinc-300 text-lg"
-        >
-          ＋
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
       </div>
 
-      <button
-        type="button"
-        disabled={missingRequired}
-        onClick={() => {
-          addLine({
-            item_id: item.item_id,
-            item_name: item.name,
-            image_path: item.image_path,
-            unit_price: unitPrice,
-            choice_ids: choiceIds,
-            selected_labels: selectedOptions,
-            qty,
-          });
-          router.push(`/order/${storeId}`);
-        }}
-        className="mt-6 w-full rounded-full bg-zinc-900 py-3 font-medium text-white disabled:opacity-40"
+      <div className="relative -mt-6 rounded-t-[1.75rem] bg-[var(--background)] px-4 pt-6">
+        <div className="flex items-start justify-between gap-3 px-1">
+          <div>
+            <p className="text-xs font-semibold tracking-wider text-brand-600">{item.category || "MENU"}</p>
+            <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{item.name}</h1>
+          </div>
+          <p className="pt-1 text-2xl font-bold tabular-nums">¥{unitPrice.toLocaleString()}</p>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3">
+          {item.option_groups.map((group) => (
+            <fieldset key={group.group_id} className="app-card p-4">
+              <legend className="sr-only">{group.label}</legend>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold">{group.label}</p>
+                {group.required ? (
+                  <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-bold text-white">必須</span>
+                ) : (
+                  <span className="text-[11px] font-medium text-zinc-400">任意</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {group.choices.map((choice) => {
+                  const active = (selection[group.group_id] ?? []).includes(choice.choice_id);
+                  return (
+                    <button
+                      key={choice.choice_id}
+                      type="button"
+                      onClick={() => toggleChoice(group.group_id, choice.choice_id, !!group.multi_select)}
+                      className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-medium ${
+                        active
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-700"
+                      }`}
+                    >
+                      {choice.label}
+                      {choice.extra_price > 0 && (
+                        <span className={`ml-1 text-xs ${active ? "text-white/70" : "text-zinc-400"}`}>
+                          +¥{choice.extra_price}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+
+        <div className="app-card mt-3 flex items-center justify-between p-4">
+          <p className="text-sm font-bold">数量</p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              className="grid h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-zinc-50 text-xl"
+              aria-label="減らす"
+            >
+              −
+            </button>
+            <span className="w-6 text-center text-lg font-bold tabular-nums">{qty}</span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(20, q + 1))}
+              className="grid h-10 w-10 place-items-center rounded-full border border-zinc-200 bg-zinc-50 text-xl"
+              aria-label="増やす"
+            >
+              ＋
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={missingRequired || savingFavorite || favoriteSaved || !token}
+          onClick={saveFavorite}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-600 disabled:opacity-50"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill={favoriteSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20.5s-7-4.4-9.5-8.9C.8 8.4 2.3 5 5.7 5c2 0 3.5 1.2 4.5 2.7C11.2 6.2 12.7 5 14.7 5c3.4 0 4.9 3.4 3.2 6.6-2.5 4.5-9.5 8.9-9.5 8.9z" />
+          </svg>
+          {favoriteSaved ? "「いつもの」に登録しました" : "この内容を「いつもの」に登録"}
+        </button>
+        <div className="h-24" />
+      </div>
+
+      <div
+        className="fixed left-0 right-0 z-30 px-4"
+        style={{ bottom: "calc(4.75rem + env(safe-area-inset-bottom))" }}
       >
-        {missingRequired ? "必須項目を選択してください" : `¥${(unitPrice * qty).toLocaleString()} をカートに追加`}
-      </button>
-
-      <button
-        type="button"
-        disabled={missingRequired || savingFavorite || favoriteSaved || !token}
-        onClick={async () => {
-          setSavingFavorite(true);
-          try {
-            const freshToken = await getAuthToken();
-            if (!freshToken) return;
-            const label =
-              selectedOptions.length > 0
-                ? `${item.name} (${selectedOptions.map((o) => o.choice_label).join("/")})`
-                : item.name;
-            await apiFetch("/api/favorites", {
-              method: "POST",
-              token: freshToken,
-              body: JSON.stringify({ item_id: item.item_id, label, selected_options: selectedOptions }),
+        <button
+          type="button"
+          disabled={missingRequired}
+          onClick={() => {
+            addLine({
+              item_id: item.item_id,
+              item_name: item.name,
+              image_path: item.image_path,
+              unit_price: unitPrice,
+              choice_ids: choiceIds,
+              selected_labels: selectedOptions,
+              qty,
             });
-            setFavoriteSaved(true);
-          } finally {
-            setSavingFavorite(false);
-          }
-        }}
-        className="mt-3 w-full rounded-full border border-zinc-300 py-2.5 text-sm font-medium text-zinc-600 disabled:opacity-40"
-      >
-        {favoriteSaved ? "「いつもの」に登録しました" : "この内容を「いつもの」に登録"}
-      </button>
+            router.push(`/order/${storeId}`);
+          }}
+          className="mx-auto flex w-full max-w-[calc(28rem-2rem)] items-center justify-between rounded-full bg-zinc-900 px-6 py-3.5 font-bold text-white shadow-float disabled:opacity-50"
+        >
+          <span>{missingRequired ? "必須項目を選択してください" : "カートに追加"}</span>
+          {!missingRequired && <span className="tabular-nums">¥{(unitPrice * qty).toLocaleString()}</span>}
+        </button>
+      </div>
     </div>
   );
 }

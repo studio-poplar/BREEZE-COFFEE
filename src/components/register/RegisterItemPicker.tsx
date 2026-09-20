@@ -96,7 +96,7 @@ export function RegisterItemPicker({
                 <li key={item.item_id}>
                   <button
                     onClick={() => selectItem(item)}
-                    className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-4 py-3 text-left hover:bg-zinc-50"
+                    className="flex w-full items-center justify-between app-card px-4 py-3 text-left hover:bg-zinc-50"
                   >
                     <span className="font-medium">{item.name}</span>
                     <span className="text-sm text-zinc-500">¥{item.price.toLocaleString()}〜</span>

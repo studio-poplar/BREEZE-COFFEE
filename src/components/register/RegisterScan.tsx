@@ -48,7 +48,7 @@ function OrderList({
         <li key={o.order_id}>
           <button
             onClick={() => onSelect(o.order_token)}
-            className="flex w-full items-center justify-between rounded-lg border border-zinc-100 px-4 py-3 text-left hover:bg-zinc-50"
+            className="flex w-full items-center justify-between app-card px-4 py-3 text-left hover:bg-zinc-50"
           >
             <div>
               <span className="font-mono font-medium">{o.order_token}</span>

@@ -62,7 +62,7 @@ export function MakerOrderView({ initialOrder }: { initialOrder: Order }) {
 
       <ul className="mb-4 flex flex-col gap-2">
         {order.items.map((item) => (
-          <li key={item.order_item_id} className="rounded-lg border border-zinc-100 p-3">
+          <li key={item.order_item_id} className="app-card p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <p className="text-lg font-bold">{item.item_name_snapshot}</p>

@@ -12,7 +12,7 @@ export function InvoiceDocument({ order, store }: { order: Order; store: Store }
 
   return (
     <div className="mx-auto max-w-md px-4 py-6 print:px-0 print:py-0">
-      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 print:hidden">
+      <div className="mb-4 flex flex-col gap-3 app-card p-4 print:hidden">
         <div>
           <label className="mb-1 block text-xs text-zinc-500">宛名</label>
           <div className="flex gap-2">

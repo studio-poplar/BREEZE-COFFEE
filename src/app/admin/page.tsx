@@ -35,7 +35,7 @@ export default async function AdminPage() {
         </div>
         <ul className="flex flex-col gap-2">
           {stores.map((s) => (
-            <li key={s.store_id} className="rounded-lg border border-zinc-100 px-4 py-3">
+            <li key={s.store_id} className="app-card px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{s.name}</span>
                 <span className="text-xs text-zinc-400">

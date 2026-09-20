@@ -70,7 +70,7 @@ export function StaffManager({
     <div className="mx-auto max-w-md px-4 py-6">
       <h1 className="mb-4 text-lg font-bold">スタッフ管理</h1>
 
-      <form onSubmit={createStaff} className="mb-8 rounded-lg border border-zinc-200 p-4">
+      <form onSubmit={createStaff} className="mb-8 app-card p-4">
         <h2 className="mb-3 text-sm font-semibold">新しいスタッフを追加</h2>
 
         <label className="mb-1 block text-xs text-zinc-500">ユーザー名(半角英数字)</label>
@@ -135,7 +135,7 @@ export function StaffManager({
 
       <ul className="flex flex-col gap-2">
         {staffList.map((s) => (
-          <li key={s.staff_id} className="rounded-lg border border-zinc-100 p-3">
+          <li key={s.staff_id} className="app-card p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">

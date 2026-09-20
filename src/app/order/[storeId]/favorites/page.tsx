@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCustomerAuth } from "@/lib/client/customer-auth";
 import { useCart } from "@/lib/client/cart";
@@ -61,35 +62,47 @@ export default function FavoritesPage({ params }: { params: Promise<{ storeId: s
 
   if (favorites.length === 0) {
     return (
-      <p className="mt-16 px-6 text-center text-sm text-zinc-400">
-        「いつもの」はまだありません。商品ページから登録できます。
-      </p>
+      <div className="mx-auto mt-20 flex max-w-md flex-col items-center px-6 text-center">
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-zinc-100 text-zinc-400">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20.5s-7-4.4-9.5-8.9C.8 8.4 2.3 5 5.7 5c2 0 3.5 1.2 4.5 2.7C11.2 6.2 12.7 5 14.7 5c3.4 0 4.9 3.4 3.2 6.6-2.5 4.5-9.5 8.9-9.5 8.9z" />
+          </svg>
+        </span>
+        <p className="mt-4 font-bold">「いつもの」はまだありません</p>
+        <p className="mt-1 text-sm text-zinc-400">商品ページから、お気に入りの組み合わせを登録できます</p>
+      </div>
     );
   }
 
   return (
-    <ul className="mx-auto flex max-w-md flex-col gap-2 px-4 py-4">
-      {favorites.map((fav) => (
-        <li key={fav.favorite_id} className="rounded-lg border border-zinc-100 p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-medium">{fav.label}</p>
-              <p className="text-sm text-zinc-500">¥{fav.current_item?.price.toLocaleString()}〜</p>
+    <div className="mx-auto max-w-md px-4 pb-4 pt-5">
+      <h1 className="mb-4 px-1 text-2xl font-bold tracking-tight">いつもの</h1>
+      <ul className="flex flex-col gap-3">
+        {favorites.map((fav) => (
+          <li key={fav.favorite_id} className="app-card rise-in flex items-center gap-3 p-3">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
+              {fav.current_item?.image_path && (
+                <Image src={fav.current_item.image_path} alt={fav.label} fill sizes="64px" className="object-cover" />
+              )}
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <button
-                onClick={() => addToCart(fav)}
-                className="rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
-              >
-                カートに追加
-              </button>
-              <button onClick={() => remove(fav.favorite_id)} className="text-xs text-zinc-400">
+            <div className="min-w-0 flex-1">
+              <p className="font-bold leading-snug">{fav.label}</p>
+              <p className="mt-0.5 text-sm font-medium tabular-nums text-zinc-500">
+                ¥{fav.current_item?.price.toLocaleString()}〜
+              </p>
+              <button onClick={() => remove(fav.favorite_id)} className="mt-1 text-xs text-zinc-400 underline">
                 削除
               </button>
             </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+            <button
+              onClick={() => addToCart(fav)}
+              className="shrink-0 rounded-full bg-zinc-900 px-4 py-2.5 text-xs font-bold text-white"
+            >
+              追加
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

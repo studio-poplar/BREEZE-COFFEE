@@ -7,18 +7,20 @@ export function AdminStoreNav({ storeId, active }: { storeId: string; active: "m
   ] as const;
 
   return (
-    <nav className="flex gap-1 border-b border-zinc-100 px-4">
-      {tabs.map((t) => (
-        <Link
-          key={t.key}
-          href={t.href}
-          className={`border-b-2 px-3 py-2.5 text-sm font-medium ${
-            active === t.key ? "border-zinc-900 text-zinc-900" : "border-transparent text-zinc-400"
-          }`}
-        >
-          {t.label}
-        </Link>
-      ))}
+    <nav className="mx-auto flex max-w-md gap-1 px-4 pt-4">
+      <div className="flex w-full rounded-full bg-zinc-200/60 p-1">
+        {tabs.map((t) => (
+          <Link
+            key={t.key}
+            href={t.href}
+            className={`flex-1 rounded-full py-2 text-center text-sm font-bold ${
+              active === t.key ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500"
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
     </nav>
   );
 }

@@ -38,7 +38,7 @@ function CashPaymentPanel({
   }, [total]);
 
   return (
-    <div className="rounded-xl border border-zinc-200 p-4">
+    <div className="app-card p-4">
       <label className="mb-1 block text-xs text-zinc-500">お預かり金額</label>
       <input
         type="number"
@@ -215,7 +215,7 @@ export function OrderConfirm({ initialOrder }: { initialOrder: Order }) {
         {order.items.map((item) => {
           const editing = editingItemId === item.order_item_id;
           return (
-            <li key={item.order_item_id} className="rounded-lg border border-zinc-100 p-3">
+            <li key={item.order_item_id} className="app-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                   <p className="text-lg font-bold">{item.item_name_snapshot}</p>

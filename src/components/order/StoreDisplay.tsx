@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LogoMark } from "@/components/brand/Logo";
 import type { Order, PaymentMethod } from "@/lib/types";
 
 const STATUS_LABEL: Record<Order["status"], { label: string; className: string }> = {
@@ -45,8 +46,9 @@ export function StoreDisplay({ storeId, initialStoreName }: { storeId: string; i
   if (!order) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <p className="text-2xl font-bold">{storeName}</p>
-        <p className="mt-4 text-lg text-zinc-400">ご来店ありがとうございます</p>
+        <LogoMark size={72} />
+        <p className="mt-6 text-3xl font-bold tracking-tight">{storeName}</p>
+        <p className="mt-3 text-lg text-zinc-400">ご来店ありがとうございます</p>
       </div>
     );
   }
@@ -55,7 +57,10 @@ export function StoreDisplay({ storeId, initialStoreName }: { storeId: string; i
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col px-6 py-10">
-      <p className="text-center text-sm text-zinc-400">{storeName}</p>
+      <div className="flex flex-col items-center gap-2">
+        <LogoMark size={40} />
+        <p className="text-sm font-medium text-zinc-400">{storeName}</p>
+      </div>
       <p
         className={`mx-auto mt-3 rounded-full px-4 py-1.5 text-base font-bold ${status.className}`}
       >
@@ -64,7 +69,7 @@ export function StoreDisplay({ storeId, initialStoreName }: { storeId: string; i
 
       <ul className="mt-8 flex flex-1 flex-col gap-4 overflow-y-auto">
         {order.items.map((item) => (
-          <li key={item.order_item_id} className="flex items-start justify-between border-b border-zinc-100 pb-4">
+          <li key={item.order_item_id} className="app-card flex items-start justify-between gap-4 p-4">
             <div>
               <p className="text-xl font-bold">
                 {item.item_name_snapshot}
@@ -89,7 +94,7 @@ export function StoreDisplay({ storeId, initialStoreName }: { storeId: string; i
       </div>
 
       {order.status !== "unpaid" && order.payment_method && (
-        <div className="mt-4 flex flex-col gap-2 rounded-xl bg-zinc-50 px-4 py-3">
+        <div className="app-card mt-4 flex flex-col gap-2 px-5 py-4">
           <div className="flex justify-between text-base">
             <span className="text-zinc-500">お支払い方法</span>
             <span className="font-bold">{PAYMENT_LABEL[order.payment_method]}</span>

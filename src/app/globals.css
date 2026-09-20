@@ -1,23 +1,134 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens.
+ *
+ * Every screen in the app (customer menu, register, maker, display, admin)
+ * was written against Tailwind's zinc scale. Rather than touching each
+ * class, the zinc scale itself is re-pointed at a warm, coffee-toned
+ * neutral palette, so the whole app re-themes together and stays consistent.
+ * zinc-900 (primary buttons, headings) becomes espresso; zinc-50/100 become
+ * the cream surfaces.
+ */
+@theme {
+  --color-zinc-50: #faf7f2;
+  --color-zinc-100: #f3eee6;
+  --color-zinc-200: #e7e0d4;
+  --color-zinc-300: #d3c9ba;
+  --color-zinc-400: #a0958a;
+  --color-zinc-500: #7c7267;
+  --color-zinc-600: #5f564d;
+  --color-zinc-700: #4a423a;
+  --color-zinc-800: #362f28;
+  --color-zinc-900: #2a211b;
+  --color-zinc-950: #1b1510;
+
+  /* Brand accent: a cool "breeze" green against the warm browns. */
+  --color-brand-50: #eef7f3;
+  --color-brand-100: #d5ebe3;
+  --color-brand-400: #58a591;
+  --color-brand-500: #3f8b78;
+  --color-brand-600: #2f7060;
+  --color-brand-700: #265a4d;
+
+  --font-sans: var(--font-geist-sans), var(--font-noto-jp), system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgba(42, 33, 27, 0.04), 0 4px 16px rgba(42, 33, 27, 0.06);
+  --shadow-float: 0 8px 28px rgba(42, 33, 27, 0.16);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f3ec;
+  --foreground: #2a211b;
   /* Menu/register/admin are staff- and customer-facing screens meant to
      always read the same regardless of the visitor's OS theme — never
      switch to a dark palette even when the device is set to dark mode. */
   color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "palt";
+  -webkit-font-smoothing: antialiased;
+  /* Native-app feel: no rubber-band chrome tint, no accidental text selection on taps. */
+  overscroll-behavior-y: none;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+button:not(:disabled),
+a[href] {
+  transition: transform 0.12s ease, background-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:not(:disabled):active,
+a.press:active {
+  transform: scale(0.97);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  background: #fff;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 1px;
+}
+
+/* Reusable surfaces */
+.app-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.32s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: none;
+  }
+  button:not(:disabled):active,
+  a.press:active {
+    transform: none;
+  }
 }
